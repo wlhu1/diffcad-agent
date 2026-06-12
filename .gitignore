@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.env
+*.log
+uploads/*
+results/*
+!uploads/.gitkeep
+!results/.gitkeep
+.vscode/
+.idea/
+cloudflared.exe
+lt_output.txt
+cf_output.txt
+*.bat

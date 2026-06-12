@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DIffCAD Agent — Plant Stomata Intelligence</title>
+  <style>
+    :root {
+      --bg0: #061b15;
+      --bg1: #0d3024;
+      --bg2: #14523a;
+      --panel: rgba(6, 28, 18, .72);
+      --panel2: rgba(255,255,255,.065);
+      --line: rgba(200, 240, 220, .16);
+      --line2: rgba(200, 240, 220, .09);
+      --text: #f0f9f3;
+      --muted: rgba(230, 248, 238, .64);
+      --muted2: rgba(230, 248, 238, .42);
+      --green: #5ce0aa;
+      --green2: #a0f0cc;
+      --cyan: #9edff4;
+      --amber: #f1d17b;
+      --danger: #ff9d8f;
+      --radius: 26px;
+      --radius2: 18px;
+      --shadow: 0 24px 56px rgba(0,0,0,.32);
+      --shadow2: 0 10px 28px rgba(0,0,0,.18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      color: var(--text);
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      background:
+        url('icons/bg.png') center / cover no-repeat fixed;
+      overflow-x: hidden;
+    }
+    body::after {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: -2;
+      background: rgba(4, 18, 12, 0.48);
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: -1;
+      background-image:
+        linear-gradient(rgba(255,255,255,.014) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.014) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, #000, rgba(0,0,0,.24));
+    }
+
+    /* ---- layout ---- */
+    .app {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      max-width: 960px; margin: 0 auto; padding: 0 24px;
+    }
+
+    /* ---- nav ---- */
+    .topnav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.06);
+      flex-shrink: 0;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text); cursor: pointer;
+    }
+    .nav-logo {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--green), var(--cyan));
+      color: #0a3022; font-weight: 900; font-size: 15px;
+    }
+    .nav-brand-text { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .nav-brand-sub { font-size: 10px; color: var(--muted); display: block; }
+    .nav-links { display: flex; gap: 6px; align-items: center; }
+    .nav-link {
+      padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      color: var(--muted); cursor: pointer; transition: all .18s ease;
+      background: transparent; border: 1px solid transparent;
+      font-family: inherit; text-decoration: none;
+    }
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    .nav-link.active { color: var(--green2); background: rgba(92,224,170,.08); border-color: rgba(92,224,170,.2); }
+    .nav-link.dot-indicator { position: relative; }
+    .nav-link.dot-indicator::after {
+      content: ""; position: absolute; top: 6px; right: 8px;
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    }
+    .nav-link.dot-indicator.offline::after { background: var(--amber); }
+
+    /* ---- views ---- */
+    .view { display: none; flex-direction: column; flex: 1; }
+    .view.active { display: flex; }
+
+    /* ========== LANDING VIEW ========== */
+    .landing-hero {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; padding: 60px 0;
+    }
+    .landing-title {
+      font-size: 52px; font-weight: 900; letter-spacing: -.03em;
+      background: linear-gradient(135deg, var(--green2) 0%, var(--cyan) 60%, #f0f9f3 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 12px; line-height: 1.15;
+    }
+    .landing-subtitle {
+      font-size: 18px; color: var(--muted); font-weight: 500;
+      max-width: 580px; margin-bottom: 8px; line-height: 1.5;
+    }
+    .landing-desc {
+      font-size: 13px; color: var(--muted2); max-width: 520px;
+      margin-bottom: 48px; line-height: 1.6;
+    }
+
+    /* ---- entry cards ---- */
+    .entry-cards {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 14px; width: 100%; max-width: 640px;
+    }
+    .entry-card {
+      padding: 28px 24px; border-radius: 20px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--line2);
+      cursor: pointer; transition: all .25s ease;
+      text-align: left; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 8px;
+      position: relative; overflow: hidden;
+    }
+    .entry-card::before {
+      content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: radial-gradient(circle at 80% 0%, rgba(92,224,170,.06), transparent 60%);
+      opacity: 0; transition: opacity .25s ease;
+    }
+    .entry-card:hover {
+      background: rgba(255,255,255,.08);
+      border-color: var(--line);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,.18), 0 0 0 1px rgba(92,224,170,.08) inset;
+    }
+    .entry-card:hover::before { opacity: 1; }
+    .entry-card .ec-icon { font-size: 28px; margin-bottom: 4px; position: relative; z-index: 1; }
+    .entry-card .ec-title {
+      font-size: 17px; font-weight: 700; color: var(--text);
+      position: relative; z-index: 1;
+    }
+    .entry-card .ec-desc {
+      font-size: 12px; color: var(--muted); line-height: 1.5;
+      position: relative; z-index: 1;
+    }
+    .entry-card .ec-arrow {
+      margin-top: auto; font-size: 13px; color: var(--green);
+      font-weight: 600; position: relative; z-index: 1;
+      opacity: 0; transform: translateX(-4px); transition: all .2s ease;
+    }
+    .entry-card:hover .ec-arrow { opacity: 1; transform: translateX(0); }
+
+    /* ---- footer ---- */
+    .landing-footer {
+      text-align: center; padding: 20px 0 32px;
+      font-size: 10.5px; color: var(--muted2);
+    }
+    .landing-footer a { color: var(--green); text-decoration: none; cursor: pointer; }
+
+    /* ========== API DOCS VIEW ========== */
+    .docs-container {
+      max-width: 820px; margin: 0 auto; width: 100%;
+      padding: 40px 0 60px;
+    }
+    .docs-header {
+      margin-bottom: 32px;
+    }
+    .docs-header h2 {
+      font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 6px;
+    }
+    .docs-header p { color: var(--muted); font-size: 13px; }
+    .endpoint-group {
+      margin-bottom: 28px;
+    }
+    .endpoint-group h3 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--green); margin-bottom: 10px;
+    }
+    .endpoint-card {
+      padding: 18px 20px; border-radius: 16px;
+      background: rgba(255,255,255,.045); border: 1px solid var(--line2);
+      margin-bottom: 10px; transition: all .2s ease;
+    }
+    .endpoint-card:hover { background: rgba(255,255,255,.065); border-color: var(--line); }
+    .ep-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .ep-method {
+      display: inline-block; padding: 3px 8px; border-radius: 6px;
+      font-size: 10px; font-weight: 800; letter-spacing: .03em;
+      background: rgba(92,224,170,.14); color: var(--green2);
+    }
+    .ep-path {
+      font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+      font-size: 13px; color: var(--text); font-weight: 600;
+    }
+    .ep-desc { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+    .ep-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .ep-tag {
+      font-size: 9px; padding: 3px 7px; border-radius: 999px;
+      background: rgba(255,255,255,.045); border: 1px solid var(--line2);
+      color: var(--muted2);
+    }
+
+    /* ========== MODEL STATUS VIEW ========== */
+    .status-container {
+      max-width: 720px; margin: 0 auto; width: 100%;
+      padding: 40px 0 60px;
+    }
+    .status-header { margin-bottom: 32px; }
+    .status-header h2 { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-bottom: 6px; }
+    .status-header p { color: var(--muted); font-size: 13px; }
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .status-card {
+      padding: 16px 18px; border-radius: 16px;
+      background: rgba(255,255,255,.045); border: 1px solid var(--line2);
+    }
+    .status-card label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted2); margin-bottom: 6px; }
+    .status-card .val { font-size: 18px; font-weight: 700; color: var(--text); }
+    .status-card .val.ok { color: var(--green); }
+    .status-card .val.warn { color: var(--amber); }
+    .status-card .val.err { color: var(--danger); }
+    .weight-list { margin-top: 16px; }
+    .weight-list h3 { font-size: 13px; margin-bottom: 10px; color: var(--text); }
+    .weight-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-radius: 12px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line2);
+      margin-bottom: 6px; font-size: 12px;
+    }
+    .weight-row .w-name { font-weight: 600; color: var(--text); }
+    .weight-row .w-status { font-size: 10.5px; }
+    .weight-row .w-status.loaded { color: var(--green); }
+    .weight-row .w-status.failed { color: var(--danger); }
+    .weight-row .w-status.missing { color: var(--amber); }
+    .status-error { padding: 14px; border-radius: 12px; background: rgba(255,157,143,.08); border: 1px solid rgba(255,157,143,.2); color: var(--amber); font-size: 12px; }
+
+    /* ---- loading ---- */
+    .loading-spin {
+      display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.1);
+      border-top-color: var(--green); border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- responsive ---- */
+    @media (max-width: 680px) {
+      .landing-title { font-size: 34px; }
+      .landing-subtitle { font-size: 15px; }
+      .entry-cards { grid-template-columns: 1fr; }
+      .topnav { flex-wrap: wrap; gap: 8px; }
+      .status-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- ======== TOP NAV ======== -->
+    <nav class="topnav">
+      <a class="nav-brand" onclick="showView('landing')">
+        <div class="nav-logo">D²</div>
+        <div>
+          <span class="nav-brand-text">DIffCAD Agent</span>
+          <span class="nav-brand-sub">Plant stomata intelligence platform</span>
+        </div>
+      </a>
+      <div class="nav-links">
+        <button class="nav-link active" data-view="landing" onclick="showView('landing')">Home</button>
+        <button class="nav-link" onclick="window.location.href='/agent'">Agent</button>
+        <button class="nav-link" data-view="docs" onclick="showView('docs')">API Docs</button>
+        <button class="nav-link" data-view="status" id="navStatusLink" onclick="showView('status'); refreshStatus();">Model Status</button>
+      </div>
+    </nav>
+
+    <!-- ======== LANDING VIEW ======== -->
+    <div class="view active" id="viewLanding">
+      <div class="landing-hero">
+        <h1 class="landing-title">DIffCAD Agent</h1>
+        <p class="landing-subtitle">Conversational stomata detection and phenotyping agent</p>
+        <p class="landing-desc">
+          Upload plant stomata images, videos, or live captures. Let the agent detect stomata,
+          calculate phenotyping metrics, review quality, and generate research-ready summaries.
+        </p>
+        <div class="entry-cards">
+          <div class="entry-card" onclick="window.location.href='/agent'">
+            <div class="ec-icon">&#x1F9E0;</div>
+            <div class="ec-title">Start Agent</div>
+            <div class="ec-desc">Enter the conversational workspace for stomata detection and phenotyping.</div>
+            <div class="ec-arrow">Open Agent &rarr;</div>
+          </div>
+          <div class="entry-card" onclick="showView('docs')">
+            <div class="ec-icon">&#x2699;</div>
+            <div class="ec-title">API Platform</div>
+            <div class="ec-desc">Access detection APIs, batch analysis endpoints, and integration documentation.</div>
+            <div class="ec-arrow">Browse API Docs &rarr;</div>
+          </div>
+        </div>
+      </div>
+      <div class="landing-footer">
+        DIffCAD Agent &mdash; Plant stomata intelligence platform &nbsp;|&nbsp;
+        <a onclick="showView('status'); refreshStatus();">Model Status</a>
+      </div>
+    </div>
+
+    <!-- ======== API DOCS VIEW ======== -->
+    <div class="view" id="viewDocs">
+      <div class="docs-container">
+        <div class="docs-header">
+          <h2>API Documentation</h2>
+          <p>RESTful detection and phenotyping endpoints for the DIffCAD Agent platform.</p>
+        </div>
+
+        <div class="endpoint-group">
+          <h3>Detection</h3>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/detect/single</span></div>
+            <div class="ep-desc">Detect stomata and apertures in a single microscope image. Returns OBB boxes, metrics, and overlay.</div>
+            <div class="ep-tags"><span class="ep-tag">multipart/form-data</span><span class="ep-tag">image + params</span><span class="ep-tag">OBB overlay</span></div>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/detect/batch</span></div>
+            <div class="ep-desc">Process multiple images in batch mode. Returns results array with per-image metrics and aggregated summary.</div>
+            <div class="ep-tags"><span class="ep-tag">multipart/form-data</span><span class="ep-tag">multi-image</span><span class="ep-tag">batch metrics</span></div>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/detect/video</span></div>
+            <div class="ep-desc">Extract frames from uploaded video at configurable interval and run detection on each frame.</div>
+            <div class="ep-tags"><span class="ep-tag">multipart/form-data</span><span class="ep-tag">video + frame_interval</span><span class="ep-tag">per-frame results</span></div>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/detect/frame</span></div>
+            <div class="ep-desc">Detect stomata from a base64-encoded camera frame. Designed for live-capture workflows.</div>
+            <div class="ep-tags"><span class="ep-tag">application/json</span><span class="ep-tag">base64 image</span><span class="ep-tag">live capture</span></div>
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <h3>Agent &amp; Session</h3>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/agent/chat</span></div>
+            <div class="ep-desc">Send a natural-language message to the DIffCAD Agent. Context-aware: includes current detection results, plant type, and workflow state.</div>
+            <div class="ep-tags"><span class="ep-tag">application/json</span><span class="ep-tag">message + context</span><span class="ep-tag">conversational</span></div>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">GET</span><span class="ep-path">/api/session/results</span></div>
+            <div class="ep-desc">Retrieve all detection results for the current session.</div>
+            <div class="ep-tags"><span class="ep-tag">query: session_id</span></div>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/session/reset</span></div>
+            <div class="ep-desc">Clear session data and reset state. Useful between experiments.</div>
+            <div class="ep-tags"><span class="ep-tag">application/json</span><span class="ep-tag">session_id</span></div>
+          </div>
+        </div>
+
+        <div class="endpoint-group">
+          <h3>Export &amp; Status</h3>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">POST</span><span class="ep-path">/api/export/csv</span></div>
+            <div class="ep-desc">Export detection metrics for the current session as a CSV file. Includes density, conductance, aperture dimensions, and metadata.</div>
+            <div class="ep-tags"><span class="ep-tag">application/json</span><span class="ep-tag">text/csv response</span><span class="ep-tag">downloadable</span></div>
+          </div>
+
+          <div class="endpoint-card">
+            <div class="ep-top"><span class="ep-method">GET</span><span class="ep-path">/api/status</span></div>
+            <div class="ep-desc">Get platform status: backend health, model weight availability, device info, PyTorch/ultralytics versions.</div>
+            <div class="ep-tags"><span class="ep-tag">no params</span><span class="ep-tag">system info</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== MODEL STATUS VIEW ======== -->
+    <div class="view" id="viewStatus">
+      <div class="status-container">
+        <div class="status-header">
+          <h2>Model Status</h2>
+          <p>Real-time platform and model weight information.</p>
+        </div>
+        <div id="statusContent">
+          <div style="text-align:center;padding:40px;color:var(--muted);">
+            <span class="loading-spin"></span>&nbsp; Querying backend status...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-link[data-view]').forEach(l => l.classList.remove('active'));
+
+      const viewMap = { landing: 'viewLanding', docs: 'viewDocs', status: 'viewStatus' };
+      const viewEl = $(viewMap[name]);
+      if (viewEl) viewEl.classList.add('active');
+
+      const navLink = document.querySelector(`.nav-link[data-view="${name}"]`);
+      if (navLink) navLink.classList.add('active');
+    }
+
+    async function refreshStatus() {
+      const container = $('statusContent');
+      if (!container) return;
+
+      const navLink = $('navStatusLink');
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);"><span class="loading-spin"></span>&nbsp; Querying backend...</div>';
+
+      try {
+        const resp = await fetch('/api/status');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+
+        const details = data.detection_weight_details || {};
+        const available = data.detection_weights_available || [];
+        const missing = data.detection_weights_missing || [];
+        const loadFailed = data.detection_weights_load_failed || [];
+
+        const usableW = available.filter(w => {
+          const d = details[w];
+          return d && d.exists && !d.load_failed;
+        });
+
+        let html = '<div class="status-grid">';
+
+        // Backend
+        html += '<div class="status-card"><label>Backend</label><div class="val ok">Online</div></div>';
+
+        // Device
+        html += '<div class="status-card"><label>Device</label><div class="val">' + escHtml(data.device || 'cpu') + '</div></div>';
+
+        // Torch
+        html += '<div class="status-card"><label>PyTorch</label><div class="val ' + (data.torch_available ? 'ok' : 'err') + '">' + (data.torch_available ? 'Available' : 'Missing') + '</div></div>';
+
+        // Ultralytics
+        html += '<div class="status-card"><label>ultralytics</label><div class="val ' + (data.ultralytics_available ? 'ok' : 'err') + '">' + (data.ultralytics_available ? 'Available' : 'Missing') + '</div></div>';
+
+        // Weights loaded
+        html += '<div class="status-card"><label>Weights Loaded</label><div class="val ' + (usableW.length > 0 ? 'ok' : 'warn') + '">' + usableW.length + ' / ' + (available.length + missing.length) + '</div></div>';
+
+        // Torch version
+        html += '<div class="status-card"><label>Torch Version</label><div class="val">' + escHtml(data.torch_version || '—') + '</div></div>';
+
+        html += '</div>';
+
+        // Weight details
+        if (Object.keys(details).length > 0) {
+          html += '<div class="weight-list"><h3>Detection Weights</h3>';
+          for (const [key, w] of Object.entries(details)) {
+            let statusClass = 'loaded';
+            let statusText = 'Ready';
+            if (!w.exists) { statusClass = 'missing'; statusText = 'Missing'; }
+            else if (w.load_failed) { statusClass = 'failed'; statusText = 'Load Failed'; }
+
+            html += '<div class="weight-row">' +
+              '<span class="w-name">' + escHtml(key) + '</span>' +
+              '<span style="color:var(--muted2);font-size:10px;">' + escHtml(w.file_name) + ' &middot; ' + (w.size_mb || '?') + ' MB</span>' +
+              '<span class="w-status ' + statusClass + '">' + statusText + '</span>' +
+              '</div>';
+            if (w.load_error) {
+              html += '<div style="font-size:9.5px;color:var(--danger);padding:2px 14px 8px;">Error: ' + escHtml(w.load_error.substring(0, 120)) + '</div>';
+            }
+          }
+          html += '</div>';
+        }
+
+        container.innerHTML = html;
+        if (navLink) navLink.classList.add('dot-indicator');
+
+      } catch (e) {
+        container.innerHTML = '<div class="status-error">Backend unreachable. Ensure the server is running on this machine. (' + escHtml(e.message) + ')</div>';
+        if (navLink) { navLink.classList.add('dot-indicator'); navLink.classList.add('offline'); }
+      }
+    }
+
+    function escHtml(s) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(String(s)));
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

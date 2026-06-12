@@ -1,0 +1,2404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DIffCAD Agent | Conversational Stomata Detection</title>
+  <style>
+    :root {
+      --bg0: #061b15;
+      --bg1: #0d3024;
+      --bg2: #14523a;
+      --panel: rgba(6, 28, 18, .72);
+      --panel2: rgba(255,255,255,.065);
+      --line: rgba(200, 240, 220, .16);
+      --line2: rgba(200, 240, 220, .09);
+      --text: #f0f9f3;
+      --muted: rgba(230, 248, 238, .64);
+      --muted2: rgba(230, 248, 238, .42);
+      --green: #5ce0aa;
+      --green2: #a0f0cc;
+      --cyan: #9edff4;
+      --amber: #f1d17b;
+      --danger: #ff9d8f;
+      --shadow: 0 24px 56px rgba(0,0,0,.32);
+      --shadow2: 0 10px 28px rgba(0,0,0,.18);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,.22);
+      --radius: 26px;
+      --radius2: 18px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      background:
+        url('icons/bg.png') center / cover no-repeat fixed;
+      overflow: hidden;
+      position: relative;
+    }
+    /* Dark overlay so glass-morphism panels stay readable */
+    body::after {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: -2;
+      background: rgba(4, 18, 12, 0.52);
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, #000, rgba(0,0,0,.24));
+      z-index: -1;
+    }
+
+    /* ---- decorative background (hidden -- using real bg image instead) ---- */
+    .scene { display: none; }
+    .leaf, .stoma-bg, .beam { position: absolute; pointer-events: none; }
+    .leaf { opacity: .26; filter: blur(.12px); }
+    .leaf-broad {
+      width: 300px; height: 500px; border-radius: 58% 42% 60% 40% / 18% 18% 82% 82%;
+      background: linear-gradient(180deg, rgba(205,255,224,.105), rgba(36,88,61,.02));
+      border: 1px solid rgba(224,255,235,.10);
+      box-shadow: inset 0 0 34px rgba(255,255,255,.035);
+    }
+    .leaf-broad::before {
+      content: ""; position: absolute; left: 50%; top: 7%; width: 2px; height: 84%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(236,255,244,.22), rgba(236,255,244,.02));
+    }
+    .leaf-slim {
+      width: 112px; height: 560px; border-radius: 50% 50% 48% 52% / 8% 8% 92% 92%;
+      background: linear-gradient(180deg, rgba(205,255,224,.09), rgba(36,88,61,.02));
+      border: 1px solid rgba(224,255,235,.08);
+    }
+    .leaf-slim::before {
+      content: ""; position: absolute; left: 50%; top: 4%; width: 2px; height: 90%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(236,255,244,.18), rgba(236,255,244,.02));
+    }
+    .leaf.a { left: -72px; top: 70px; transform: rotate(-16deg); }
+    .leaf.b { left: 100px; bottom: -148px; transform: rotate(11deg) scale(.82); }
+    .leaf.c { right: -60px; top: 88px; transform: rotate(15deg); }
+    .leaf.d { right: 120px; bottom: -156px; transform: rotate(-18deg) scale(.83); }
+    .leaf.e { left: 330px; top: -154px; transform: rotate(-9deg) scale(.68); opacity: .14; }
+    .leaf.f { right: 330px; top: -160px; transform: rotate(8deg) scale(.66); opacity: .14; }
+    .stoma-bg {
+      width: 160px; height: 80px; border-radius: 50% / 44%; opacity: .22;
+      border: 1px solid rgba(210,255,228,.13);
+      background: radial-gradient(circle at 50% 50%, rgba(198,255,224,.05), rgba(255,255,255,.01) 62%, transparent 78%);
+    }
+    .stoma-bg::before, .stoma-bg::after {
+      content: ""; position: absolute; top: 50%; width: 41%; height: 56%;
+      transform: translateY(-50%); border-radius: 50% / 60%;
+      border: 1px solid rgba(198,255,224,.12);
+    }
+    .stoma-bg::before { left: 9%; } .stoma-bg::after { right: 9%; }
+    .stoma-bg .slit { position: absolute; left: 50%; top: 50%; width: 10px; height: 34px;
+      transform: translate(-50%,-50%); border-radius: 999px;
+      background: linear-gradient(180deg, rgba(158,223,244,.25), rgba(255,255,255,.02)); }
+    .stoma-bg.s1 { left: 34px; top: 160px; transform: rotate(-20deg); }
+    .stoma-bg.s2 { right: 40px; top: 178px; transform: rotate(18deg); }
+    .stoma-bg.s3 { left: 108px; bottom: 60px; transform: rotate(12deg) scale(.92); }
+    .stoma-bg.s4 { right: 126px; bottom: 54px; transform: rotate(-18deg) scale(.92); }
+    .beam { inset: 0; width: 24%; opacity: .10; transform: skewX(-12deg);
+      background: linear-gradient(90deg, transparent, rgba(202,255,232,.14), transparent);
+      animation: scan 10s linear infinite; }
+    @keyframes scan { from { left: -32%; } to { left: 112%; } }
+
+    /* ---- layout ---- */
+    .app { width: min(1580px, calc(100vw - 18px)); height: calc(100vh - 16px); margin: 8px auto;
+      display: grid; grid-template-rows: auto 1fr; gap: 10px; }
+
+    /* ---- topbar ---- */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 16px; border-radius: 20px;
+      background: rgba(7, 34, 24, .52); border: 1px solid var(--line2);
+      box-shadow: var(--shadow2); backdrop-filter: blur(16px);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--green), var(--cyan)); color: #0a3022;
+      font-weight: 900; font-size: 18px; }
+    .brand h1 { margin: 0; font-size: 20px; line-height: 1.05; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; }
+    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px;
+      border-radius: 999px; background: rgba(255,255,255,.065); border: 1px solid var(--line);
+      font-size: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.green { background: var(--green); box-shadow: 0 0 0 4px rgba(105,223,180,.10); }
+    .dot.amber { background: var(--amber); box-shadow: 0 0 0 4px rgba(241,209,123,.10); }
+
+    /* ---- main grid ---- */
+    .main { min-height: 0; display: grid; grid-template-columns: minmax(620px, 1fr) 260px; gap: 10px; }
+
+    /* ---- agent shell ---- */
+    .agent-shell {
+      min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px;
+      padding: 14px; border-radius: var(--radius); background: var(--panel);
+      border: 1px solid var(--line2); box-shadow: var(--shadow); backdrop-filter: blur(18px);
+    }
+    .hero { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center;
+      padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.052);
+      border: 1px solid var(--line2); }
+    .avatar { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center;
+      font-size: 24px; background: linear-gradient(135deg, rgba(105,223,180,.95), rgba(158,223,244,.95));
+      box-shadow: 0 8px 18px rgba(105,223,180,.18); }
+    .hero h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+    .hero p { margin: 4px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.4; max-width: 720px; }
+    .workflow-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      border-radius: 999px; background: rgba(105,223,180,.08); border: 1px solid rgba(105,223,180,.18);
+      font-size: 10.5px; color: var(--green); font-weight: 600; white-space: nowrap; }
+    .tag { padding: 6px 9px; border-radius: 999px; background: rgba(255,255,255,.065);
+      border: 1px solid var(--line); font-size: 10.5px; color: var(--muted); }
+    .hero-cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .plant-guide {
+      display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      padding: 6px 10px; border-radius: 10px;
+      background: rgba(158, 223, 244, 0.08); border: 1px solid rgba(158, 223, 244, 0.2);
+      font-size: 10px; color: var(--cyan); line-height: 1.35;
+      max-width: 520px; cursor: help;
+    }
+    .plant-guide b { color: var(--green2); }
+
+    /* ---- chat ---- */
+    .chat-area { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; }
+    .chat-box { min-height: 0; overflow: auto; padding: 12px; border-radius: 20px;
+      background: rgba(255,255,255,.045); border: 1px solid var(--line2);
+      display: flex; flex-direction: column; gap: 9px; }
+    .msg { max-width: 78%; padding: 11px 13px; border-radius: 15px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .msg.ai { align-self: flex-start; background: rgba(255,255,255,.075); border: 1px solid var(--line); }
+    .msg.user { align-self: flex-end; background: linear-gradient(135deg, rgba(105,223,180,.96), rgba(158,223,244,.96)); color: #083123; font-weight: 600; }
+    .msg.system { align-self: center; font-size: 11px; color: var(--muted2); font-style: italic; max-width: 90%; text-align: center; }
+    .msg .mock-badge { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px;
+      font-size: 9px; background: rgba(241,209,123,.18); color: var(--amber); border: 1px solid rgba(241,209,123,.25); }
+
+    .composer { display: grid; grid-template-columns: 1fr 56px; gap: 8px; }
+    .composer-card { min-height: 114px; padding: 10px; border-radius: 20px;
+      background: rgba(255,255,255,.075); border: 1px solid var(--line);
+      display: grid; grid-template-rows: auto 1fr auto; gap: 8px; }
+    textarea { width: 100%; min-height: 44px; resize: none; border: 0; outline: none;
+      background: transparent; color: var(--text); font: inherit; font-size: 13px; line-height: 1.45; }
+    textarea::placeholder { color: rgba(239,249,242,.48); }
+    .composer-actions { display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; flex-wrap: wrap; }
+    .left-actions, .right-actions { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .left-actions { flex: 1; min-width: 0; }
+
+    /* ---- composer attachments (ChatGPT-style inline preview) ---- */
+    .composer-attachments {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;
+      padding: 8px; border-radius: 14px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line2);
+      min-height: 48px;
+    }
+    .composer-attachments:empty { display: none; }
+    .attach-card {
+      display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+      border-radius: 12px; background: rgba(255,255,255,.075);
+      border: 1px solid var(--line); position: relative; max-width: 340px;
+    }
+    .attach-card .attach-close {
+      position: absolute; top: -7px; right: -7px; width: 20px; height: 20px;
+      border-radius: 50%; border: 1px solid var(--line); background: var(--bg1);
+      color: var(--muted); font-size: 12px; line-height: 18px; text-align: center;
+      cursor: pointer; transition: .15s ease;
+    }
+    .attach-card .attach-close:hover { color: var(--danger); border-color: rgba(255,157,143,.35); }
+    .attach-thumb {
+      width: 40px; height: 40px; border-radius: 8px; object-fit: cover;
+      background: rgba(0,0,0,.25); border: 1px solid var(--line2); flex-shrink: 0;
+    }
+    .attach-thumb.icon { display: grid; place-items: center; font-size: 18px; background: rgba(255,255,255,.06); }
+    .attach-info { min-width: 0; }
+    .attach-info .name {
+      font-size: 11.5px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+    }
+    .attach-info .meta {
+      font-size: 9.5px; color: var(--muted); margin-top: 1px;
+    }
+    .attach-grid {
+      display: flex; gap: 4px; flex-shrink: 0;
+    }
+    .attach-grid img {
+      width: 32px; height: 32px; border-radius: 6px; object-fit: cover;
+      background: rgba(0,0,0,.25); border: 1px solid var(--line2);
+    }
+    .attach-grid .more {
+      width: 32px; height: 32px; border-radius: 6px; display: grid; place-items: center;
+      background: rgba(255,255,255,.075); border: 1px solid var(--line2);
+      font-size: 9px; font-weight: 700; color: var(--muted); flex-shrink: 0;
+    }
+    .attach-camera {
+      display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+      border-radius: 12px; background: rgba(255,255,255,.075);
+      border: 1px solid var(--line);
+    }
+    .attach-camera .live-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: #ff5e4d;
+      box-shadow: 0 0 0 4px rgba(255,94,77,.22); flex-shrink: 0;
+      animation: pulse 1.8s ease infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+    .attach-camera .live-label {
+      font-size: 11.5px; font-weight: 700; color: var(--text);
+    }
+    .attach-camera .attach-close {
+      width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line);
+      background: var(--bg1); color: var(--muted); font-size: 12px; line-height: 18px;
+      text-align: center; cursor: pointer; transition: .15s ease; flex-shrink: 0;
+    }
+    .attach-camera .attach-close:hover { color: var(--danger); border-color: rgba(255,157,143,.35); }
+
+    .chip-row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+    .chip { padding: 6px 9px; border-radius: 999px; color: var(--text);
+      background: rgba(255,255,255,.075); border: 1px solid var(--line); font-size: 10.5px; }
+    .chip.active { background: linear-gradient(135deg, rgba(105,223,180,.22), rgba(158,223,244,.14));
+      border-color: rgba(215,255,230,.22); }
+
+    /* ---- unified button system ---- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line);
+      background: rgba(255,255,255,.065); color: var(--text);
+      font-size: 11.5px; font-weight: 600; cursor: pointer;
+      transition: all .18s ease; white-space: nowrap;
+      font-family: inherit; line-height: 1.35; min-height: 32px;
+    }
+    .btn:hover { background: rgba(255,255,255,.11); border-color: rgba(200,240,220,.28); }
+    .btn:active { transform: scale(.97); }
+    .btn-ghost {
+      background: rgba(255,255,255,.045);
+      border-color: var(--line2);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,.08); }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(92,224,170,.92), rgba(158,223,244,.92));
+      color: #083123; border-color: transparent;
+      font-weight: 700; box-shadow: 0 4px 14px rgba(92,224,170,.16);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(92,224,170,.26); transform: translateY(-1px);
+    }
+    .btn-send {
+      width: 44px; height: 44px; border-radius: 50%; padding: 0;
+      background: linear-gradient(135deg, rgba(92,224,170,.94), rgba(158,223,244,.94));
+      color: #083123; border: none; font-size: 17px; font-weight: 900;
+      box-shadow: 0 4px 16px rgba(92,224,170,.22);
+      cursor: pointer; transition: all .18s ease;
+    }
+    .btn-send:hover { box-shadow: 0 6px 22px rgba(92,224,170,.32); transform: scale(1.05); }
+    .btn-send:active { transform: scale(.94); }
+    .btn-icon {
+      width: 30px; height: 30px; border-radius: 50%; padding: 0; min-height: unset;
+      background: rgba(255,255,255,.055); border: 1px solid var(--line2);
+      color: var(--muted); font-size: 13px;
+    }
+    .btn-icon:hover { color: var(--text); background: rgba(255,255,255,.1); }
+    .btn-sm { font-size: 10px; padding: 5px 10px; min-height: 26px; }
+    .btn-xs { font-size: 9.5px; padding: 4px 8px; min-height: 24px; border-radius: 999px; }
+
+    /* ---- upload menu ---- */
+    .upload-menu-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: 1px dashed var(--line);
+      background: rgba(255,255,255,.05); color: var(--muted);
+      font-size: 17px; cursor: pointer; display: grid; place-items: center;
+      transition: all .18s ease; font-family: inherit; line-height: 1;
+    }
+    .upload-menu-btn:hover {
+      background: rgba(255,255,255,.1); border-color: var(--green);
+      color: var(--green2);
+    }
+    .upload-dropdown {
+      position: absolute; bottom: calc(100% + 6px); left: 0;
+      background: rgba(7,34,24,.94); border: 1px solid var(--line);
+      border-radius: 16px; padding: 6px; display: none; flex-direction: column; gap: 2px;
+      box-shadow: var(--shadow); backdrop-filter: blur(18px); z-index: 20;
+      min-width: 170px;
+    }
+    .upload-dropdown.show { display: flex; }
+    .upload-dropdown .upload-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-radius: 10px; cursor: pointer; font-size: 11.5px; font-weight: 600;
+      color: var(--text); transition: .12s ease; border: none; background: transparent;
+      font-family: inherit; text-align: left; white-space: nowrap;
+    }
+    .upload-dropdown .upload-item:hover { background: rgba(255,255,255,.08); }
+    .upload-dropdown .upload-item .ui-icon { font-size: 15px; width: 22px; text-align: center; }
+
+    /* ---- guide cards ---- */
+    .guide-cards {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+      padding: 4px 0; margin-top: 2px;
+    }
+    .guide-card {
+      padding: 13px 14px; border-radius: 14px;
+      background: rgba(255,255,255,.04); border: 1px solid var(--line2);
+      cursor: pointer; transition: all .2s ease;
+    }
+    .guide-card:hover {
+      background: rgba(255,255,255,.08); border-color: var(--line);
+      transform: translateY(-1px);
+    }
+    .guide-card .g-icon { font-size: 18px; margin-bottom: 5px; }
+    .guide-card .g-title { font-size: 12px; font-weight: 700; color: var(--text); }
+    .guide-card .g-desc { font-size: 9.5px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+
+    /* ---- side module polish ---- */
+    .mod-status {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 6px;
+      padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 600;
+    }
+    .mod-status.ok { background: rgba(92,224,170,.08); color: var(--green); }
+    .mod-status.warn { background: rgba(241,209,123,.08); color: var(--amber); }
+    .mod-status.idle { background: rgba(255,255,255,.04); color: var(--muted2); }
+
+    /* ---- side modules ---- */
+    .side-modules { min-height: 0; display: grid; grid-template-rows: auto auto auto auto 1fr; gap: 10px; }
+    .module-card { padding: 12px; border-radius: 20px;
+      background: rgba(7, 34, 24, .48); border: 1px solid var(--line2);
+      box-shadow: var(--shadow2); backdrop-filter: blur(16px); }
+    .module-card h3 { margin: 0; font-size: 15px; }
+    .module-card p { margin: 6px 0 10px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .mini-stat { padding: 8px; border-radius: 12px; background: rgba(255,255,255,.055);
+      border: 1px solid var(--line2); }
+    .mini-stat label { display: block; color: var(--muted); font-size: 9px;
+      text-transform: uppercase; letter-spacing: .04em; }
+    .mini-stat b { display: block; margin-top: 5px; font-size: 16px; }
+    .module-btn { width: 100%; margin-top: 8px; }
+    .agent-plan-summary { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .qc-list { display: grid; gap: 6px; }
+    .qc-item { padding: 8px; border-radius: 12px; background: rgba(255,255,255,.052);
+      border: 1px solid var(--line2); }
+    .qc-item b { display: block; font-size: 11px; }
+    .qc-item span { display: block; margin-top: 3px; color: var(--muted); font-size: 9.5px; }
+
+    .advanced-block details { border-radius: 14px; background: rgba(255,255,255,.045);
+      border: 1px solid var(--line2); overflow: hidden; }
+    .advanced-block summary { list-style: none; cursor: pointer; padding: 9px 10px;
+      color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase;
+      letter-spacing: .06em; }
+    .advanced-block summary::-webkit-details-marker { display: none; }
+    .param-grid { display: grid; gap: 8px; padding: 0 10px 10px; }
+    .param-row { display: grid; grid-template-columns: 45px 1fr 38px; gap: 6px; align-items: center;
+      color: var(--muted); font-size: 10px; }
+    input[type="range"] { appearance: none; width: 100%; height: 6px; border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), #c9f4df); outline: none; }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: #fff; border: 3px solid var(--green);
+      box-shadow: 0 4px 10px rgba(105,223,180,.22); }
+    .scale-input { width: 100%; height: 30px; border-radius: 9px; border: 1px solid var(--line);
+      background: rgba(255,255,255,.08); color: #f5fbff; padding: 0 9px; outline: none; }
+
+    /* ---- workspace drawer ---- */
+    .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.28);
+      opacity: 0; pointer-events: none; transition: .22s ease; z-index: 30; }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .workspace-drawer {
+      position: fixed; right: 12px; top: 12px; bottom: 12px;
+      width: min(920px, calc(100vw - 24px));
+      background: rgba(7, 34, 24, .88); border: 1px solid var(--line); border-radius: 24px;
+      box-shadow: var(--shadow); backdrop-filter: blur(22px);
+      transform: translateX(calc(100% + 24px)); transition: .26s ease; z-index: 40;
+      display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 10px; padding: 14px;
+    }
+    .workspace-drawer.open { transform: translateX(0); }
+    .drawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .drawer-top h2 { margin: 0; font-size: 22px; }
+    .drawer-top p { margin: 4px 0 0; color: var(--muted); font-size: 11.5px; }
+    .workspace-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .stat-card { padding: 10px; border-radius: 14px; background: rgba(255,255,255,.055);
+      border: 1px solid var(--line2); min-height: 70px; }
+    .stat-card label { display: block; color: var(--muted); font-size: 9.5px;
+      text-transform: uppercase; letter-spacing: .04em; }
+    .stat-card strong { display: block; margin-top: 7px; font-size: 19px; }
+    .stat-card em { display: block; margin-top: 3px; font-style: normal; color: var(--muted); font-size: 9.5px; }
+
+    .workspace-body { min-height: 0; overflow: auto; display: grid; gap: 8px; }
+    .display-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .image-box { background: rgba(255,255,255,.052); border: 1px solid var(--line2);
+      border-radius: 18px; overflow: hidden; min-height: 260px; display: flex; flex-direction: column; }
+    .image-title { display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 11px; border-bottom: 1px solid var(--line2); font-size: 11.5px;
+      font-weight: 700; background: rgba(255,255,255,.035); }
+    .canvas-wrap { flex: 1; position: relative; display: grid; place-items: center;
+      padding: 8px; min-height: 205px; }
+    canvas, video { width: 100%; max-height: 198px; border-radius: 12px; object-fit: contain;
+      background: rgba(0,0,0,.3); box-shadow: inset 0 0 0 1px rgba(18,48,60,.08); }
+    .empty-state { position: absolute; inset: 8px; display: grid; place-items: center;
+      padding: 18px; text-align: center; border-radius: 12px;
+      color: rgba(235,248,255,.76);
+      background: radial-gradient(circle at 50% 42%, rgba(164,222,250,.08), transparent 36%),
+                  repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 10px, transparent 10px 20px); }
+    .empty-state b { display: block; margin-bottom: 4px; font-size: 14px; color: #f5fbff; }
+
+    .progress-wrap { display: grid; grid-template-columns: 84px 1fr 44px; gap: 8px; align-items: center;
+      padding: 9px 10px; border-radius: 13px; background: rgba(255,255,255,.05);
+      border: 1px solid var(--line2); }
+    .progress-wrap strong { font-size: 11.5px; }
+    .progress-track { height: 7px; border-radius: 999px; overflow: hidden;
+      background: rgba(255,255,255,.08); }
+    .progress-bar { width: 0%; height: 100%; border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), var(--cyan)); transition: width .25s ease; }
+    .progress-value { text-align: right; color: #d1f6ff; font-size: 11.5px; font-weight: 800; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .metric { padding: 8px 9px; border-radius: 12px; background: rgba(255,255,255,.055);
+      border: 1px solid var(--line2); min-height: 58px; }
+    .metric label { display: block; min-height: 19px; color: rgba(226,244,255,.72);
+      font-size: 8.8px; line-height: 1.22; text-transform: uppercase; letter-spacing: .03em; }
+    .metric strong { display: block; margin-top: 4px; font-size: 13px; color: #fbfdff;
+      font-variant-numeric: tabular-nums; }
+    .metric em { display: inline-block; margin-top: 2px; font-style: normal;
+      color: var(--muted); font-size: 8.8px; }
+
+    .drawer-footer { display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; flex-wrap: wrap; }
+    .nav-strip { display: none; align-items: center; gap: 8px; }
+    .nav-strip.show { display: flex; }
+    .nav-indicator { min-width: 84px; text-align: center; color: var(--muted);
+      font-size: 11.5px; font-weight: 700; }
+
+    /* ---- toast ---- */
+    .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px);
+      opacity: 0; pointer-events: none; padding: 10px 13px; border-radius: 12px;
+      color: #072b3f; background: linear-gradient(135deg, rgba(198,247,219,.98), rgba(105,223,180,.98));
+      box-shadow: var(--shadow2); transition: opacity .2s ease, transform .2s ease; z-index: 99;
+      font-size: 12px; font-weight: 700; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: linear-gradient(135deg, rgba(255,180,170,.98), rgba(255,140,120,.98)); color: #3f0a05; }
+
+    input[type="file"] { display: none; }
+
+    /* ---- responsive ---- */
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: calc(100vh - 16px); }
+      .main { grid-template-columns: 1fr; }
+      .side-modules { grid-template-columns: repeat(2, 1fr); grid-template-rows: auto; }
+      .hero { grid-template-columns: 48px 1fr; }
+      .hero-cta { grid-column: 1 / -1; justify-content: flex-start; }
+    }
+    @media (max-width: 760px) {
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .composer, .display-grid, .metrics-grid, .workspace-stats, .side-modules {
+        grid-template-columns: 1fr; }
+      .workspace-drawer { right: 6px; left: 6px; width: auto; top: 6px; bottom: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- decorative scene -->
+  <div class="scene">
+    <div class="leaf leaf-broad a"></div><div class="leaf leaf-slim b"></div>
+    <div class="leaf leaf-broad c"></div><div class="leaf leaf-slim d"></div>
+    <div class="leaf leaf-broad e"></div><div class="leaf leaf-slim f"></div>
+    <div class="stoma-bg s1"><div class="slit"></div></div>
+    <div class="stoma-bg s2"><div class="slit"></div></div>
+    <div class="stoma-bg s3"><div class="slit"></div></div>
+    <div class="stoma-bg s4"><div class="slit"></div></div>
+    <div class="beam"></div>
+  </div>
+
+  <div class="app">
+    <!-- ======== TOP BAR ======== -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">D²</div>
+        <div>
+          <h1>DIffCAD Agent</h1>
+          <p>Conversational stomata detection &amp; phenotyping assistant</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a href="/" class="btn btn-ghost btn-sm" style="text-decoration:none;">&larr; Home</a>
+        <span class="pill"><i class="dot" id="statusDot"></i><b id="statusModel">Initializing...</b></span>
+        <span class="pill" id="weightPill" title="">Weights: <b id="statusWeight">—</b></span>
+        <span class="pill">Source: <b id="statusSource">None</b></span>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- ======== AGENT SHELL (left) ======== -->
+      <section class="agent-shell">
+        <!-- Hero (compact) -->
+        <div class="hero">
+          <div class="avatar">🤖</div>
+          <div>
+            <h2>DIffCAD Agent</h2>
+            <p>Conversational stomata detection &amp; phenotyping — upload, ask, analyze.</p>
+          </div>
+          <div class="hero-cta">
+            <span class="plant-guide" id="plantGuide" title="Dicot (broadleaf plants): stomata scattered randomly, kidney-shaped guard cells. Monocot (grasses/cereals): stomata in parallel rows, dumbbell-shaped guard cells. Select the matching type before detection.">&#x1F331; <b>Plant Type Guide</b> — Dicot: scattered, kidney-shaped guard cells (e.g. Arabidopsis, soybean). Monocot: parallel rows, dumbbell-shaped (e.g. rice, wheat, maize). <b>Select the correct type below before running detection.</b></span>
+            <span class="workflow-status" id="workflowStatus">Agent Plan Ready</span>
+            <button id="openWorkspaceBtn" class="btn btn-ghost btn-sm">Open Workspace</button>
+          </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+          <div id="chatBox" class="chat-box">
+            <div class="msg ai">Hello! I'm the StomaD² Agent. Upload a stomata image, folder, video, or start a camera stream — and I'll guide you through detection, phenotyping, and research-quality reporting.</div>
+            <div class="guide-cards" id="guideCards">
+              <div class="guide-card" data-action="Analyze stomata density and distribution pattern">
+                <div class="g-icon">&#x1F52C;</div>
+                <div class="g-title">Analyze Density</div>
+                <div class="g-desc">Measure stomata density and spatial distribution</div>
+              </div>
+              <div class="guide-card" data-action="Check the image quality and detection reliability">
+                <div class="g-icon">&#x1F4CB;</div>
+                <div class="g-title">Quality Check</div>
+                <div class="g-desc">Verify image quality and detection confidence</div>
+              </div>
+              <div class="guide-card" data-action="Generate a research summary of the current sample">
+                <div class="g-icon">&#x1F4CA;</div>
+                <div class="g-title">Research Summary</div>
+                <div class="g-desc">Generate a publication-ready report</div>
+              </div>
+              <div class="guide-card" data-action="Compare aperture size and conductance traits">
+                <div class="g-icon">&#x1F4CF;</div>
+                <div class="g-title">Compare Apertures</div>
+                <div class="g-desc">Analyze aperture morphology traits</div>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <div class="composer-card">
+              <div class="composer-attachments" id="composerAttachments"></div>
+              <textarea id="promptInput" placeholder="Describe your task or upload samples to begin..."></textarea>
+              <div class="composer-actions">
+                <div class="left-actions">
+                  <div class="upload-group" style="position:relative;">
+                    <button class="upload-menu-btn" id="uploadMenuBtn" title="Add samples">+</button>
+                    <div class="upload-dropdown" id="uploadDropdown">
+                      <button class="upload-item" data-source="single" id="btnSingle"><span class="ui-icon">&#x1F5BC;</span> Image</button>
+                      <button class="upload-item" data-source="batch" id="btnBatch"><span class="ui-icon">&#x1F4C1;</span> Folder</button>
+                      <button class="upload-item" data-source="video" id="btnVideo"><span class="ui-icon">&#x1F3AC;</span> Video</button>
+                      <button class="upload-item" data-source="camera" id="btnCamera"><span class="ui-icon">&#x1F4F7;</span> Camera</button>
+                    </div>
+                  </div>
+                  <span style="color:var(--line2);margin:0 2px">|</span>
+                  <button class="chip active" data-plant="dicotyledons" id="btnDicot" title="Dicot: scattered stomata, kidney-shaped guard cells. For broadleaf plants (Arabidopsis, soybean, tomato).">Dicot</button>
+                  <button class="chip" data-plant="monocotyledons" id="btnMonocot" title="Monocot: parallel-row stomata, dumbbell-shaped guard cells. For grasses & cereals (rice, wheat, maize).">Monocot</button>
+                  <button class="chip active" data-sample="nondestructive" id="btnNoninvasive">Noninvasive</button>
+                  <button class="chip" data-sample="destructive" id="btnDestructive">Destructive</button>
+                </div>
+                <div class="right-actions">
+                  <button class="btn btn-ghost btn-sm" id="btnMetadata">Metadata</button>
+                  <button class="btn btn-ghost btn-sm" id="quickExplain">Explain</button>
+                  <button class="btn btn-ghost btn-sm" id="quickSummary">Summary</button>
+                  <button class="btn btn-ghost btn-sm" id="quickQuality">Quality</button>
+                  <button id="runAgentBtn" class="btn btn-primary btn-sm">Run Detection</button>
+                </div>
+              </div>
+            </div>
+            <button id="sendBtn" class="btn-send">➤</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======== SIDE PANELS (right) ======== -->
+      <aside class="side-modules">
+        <div class="module-card">
+          <h3>&#x1F4CB; Workspace</h3>
+          <p>Inspect overlays, metrics, and navigate batch results.</p>
+          <div class="mini-stats">
+            <div class="mini-stat"><label>Items</label><b id="sideItemCount">0</b></div>
+            <div class="mini-stat"><label>State</label><b id="sideRunState">Ready</b></div>
+          </div>
+          <button id="openWorkspaceBtn2" class="btn btn-primary btn-sm" style="width:100%;margin-top:8px;">Open Workspace</button>
+        </div>
+
+        <div class="module-card">
+          <h3>&#x1F9E0; Agent Output</h3>
+          <div class="mod-status idle" id="agentOutputStatus">Awaiting input</div>
+          <p class="agent-plan-summary" id="agentOutputText" style="margin-top:8px;">No analysis yet. The agent summarizes density, aperture traits, quality warnings, and export options after detection.</p>
+        </div>
+
+        <div class="module-card">
+          <h3>&#x2705; Quality Control</h3>
+          <div class="qc-list">
+            <div class="qc-item"><b>Image Quality</b><span id="qcImageText">Waiting for input</span><span class="mod-status idle" style="display:block;margin-top:4px;">&#x26AA; Pending</span></div>
+            <div class="qc-item"><b>Scale Check</b><span id="qcScaleText">Default scale: 100 μm</span><span class="mod-status ok" style="display:block;margin-top:4px;">&#x1F7E2; Configured</span></div>
+            <div class="qc-item"><b>Manual Review</b><span id="qcReviewText">Pending</span><span id="qcReviewStatus" class="mod-status idle" style="display:block;margin-top:4px;">&#x26AA; Pending</span></div>
+          </div>
+        </div>
+
+        <div class="module-card advanced-block">
+          <h3>&#x2699; Advanced</h3>
+          <p style="font-size:10px;">Detection parameters. The agent runs with sensible defaults.</p>
+          <details>
+            <summary>Detection Settings</summary>
+            <div class="param-grid">
+              <div class="param-row"><span>IoU</span><input id="iou" type="range" min="0" max="1" step="0.01" value="0.70"><span id="iouOut">0.70</span></div>
+              <div class="param-row"><span>Conf</span><input id="conf" type="range" min="0" max="1" step="0.01" value="0.50"><span id="confOut">0.50</span></div>
+              <div class="param-row"><span>Step</span><input id="step" type="range" min="0" max="50" step="1" value="5"><span id="stepOut">5</span></div>
+              <div class="param-row"><span>Scale</span><input id="scale" class="scale-input" type="number" min="1" value="100"><span><span id="scaleOut">100</span> μm</span></div>
+            </div>
+          </details>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ======== WORKSPACE DRAWER ======== -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+  <section id="workspaceDrawer" class="workspace-drawer">
+    <div class="drawer-top">
+      <div>
+        <h2>Research Workspace</h2>
+        <p>Expanded view for visual overlays, detailed measurements, and exports.</p>
+      </div>
+      <div class="workspace-actions">
+        <button id="saveBtn" class="btn btn-ghost btn-sm">Export CSV</button>
+        <button id="resetBtn" class="btn btn-ghost btn-sm">Reset</button>
+        <button id="closeWorkspaceBtn" class="btn btn-ghost btn-sm">Close</button>
+      </div>
+    </div>
+
+    <div class="workspace-stats">
+      <div class="stat-card"><label>Loaded Items</label><strong id="drawerItems">0</strong><em>input assets</em></div>
+      <div class="stat-card"><label>Stomata Count</label><strong id="stomaCountSide">—</strong><em>detected regions</em></div>
+      <div class="stat-card"><label>Density</label><strong id="sideDensity">—</strong><em>stomata mm⁻²</em></div>
+      <div class="stat-card"><label>Conductance</label><strong id="conductanceTop">—</strong><em>mol m⁻² s⁻¹</em></div>
+    </div>
+
+    <div class="workspace-body">
+      <div class="display-grid">
+        <div class="image-box">
+          <div class="image-title"><span>Input</span><span id="inputInfo">No file</span></div>
+          <div class="canvas-wrap">
+            <canvas id="inputCanvas" width="640" height="420"></canvas>
+            <video id="videoPreview" muted playsinline style="display:none"></video>
+            <div id="inputEmpty" class="empty-state"><div><b>No input</b>Select an upload source in the agent panel.</div></div>
+          </div>
+        </div>
+        <div class="image-box">
+          <div class="image-title"><span>Detection Result</span><span id="outputInfo">OBB overlay</span></div>
+          <div class="canvas-wrap">
+            <canvas id="outputCanvas" width="640" height="420"></canvas>
+            <div id="outputEmpty" class="empty-state"><div><b>No result</b>Run detection with the agent plan.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <strong id="runState">Ready</strong>
+        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+        <div id="progressValue" class="progress-value">0%</div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric"><label>Stomata Density</label><strong id="density">—</strong><em>stomata mm⁻²</em></div>
+        <div class="metric"><label>Conductance</label><strong id="conductance">—</strong><em>mol m⁻² s⁻¹</em></div>
+        <div class="metric"><label>Stomata Length</label><strong id="stomaLength">—</strong><em>μm</em></div>
+        <div class="metric"><label>Stomata Width</label><strong id="stomaWidth">—</strong><em>μm</em></div>
+        <div class="metric"><label>Stomata Aspect Ratio</label><strong id="stomaAspect">—</strong></div>
+        <div class="metric"><label>Aperture Length</label><strong id="apertureLength">—</strong><em>μm</em></div>
+        <div class="metric"><label>Aperture Width</label><strong id="apertureWidth">—</strong><em>μm</em></div>
+        <div class="metric"><label>Aperture Aspect Ratio</label><strong id="apertureAspect">—</strong></div>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <div class="nav-strip" id="navStrip">
+        <button id="prevBtn" class="btn btn-ghost btn-xs">← Previous</button>
+        <div id="navIndicator" class="nav-indicator">1 / 1</div>
+        <button id="nextBtn" class="btn btn-ghost btn-xs">Next →</button>
+      </div>
+      <div class="chip-row">
+        <span class="tag">Area: <b id="imageArea">— mm²</b></span>
+        <span class="tag">Stomata: <b id="stomaCount">—</b></span>
+        <span class="tag">Aperture: <b id="apertureCount">—</b></span>
+        <span class="tag" id="mockTag" style="display:none;color:var(--amber)">MOCK DATA</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hidden file inputs -->
+  <input id="singleImageInput" type="file" accept="image/*">
+  <input id="batchImageInput" type="file" accept="image/*" multiple webkitdirectory>
+  <input id="videoInput" type="file" accept="video/*">
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ======================================================================
+    // DIffCAD Agent Frontend  v2.0.0
+    // Connects to backend_api.py for real detection + phenotype calculation.
+    // Falls back to client-side mock when backend is unreachable.
+    // ======================================================================
+
+    const $ = id => document.getElementById(id);
+
+    // ---- configuration ----
+    const API_BASE = (window.location.protocol === 'file:') ? 'http://127.0.0.1:5000' : '';
+    // If opened as a local file, point to the backend. If served by the backend, use same-origin.
+    const SESSION_ID = 'session_' + Date.now();
+
+    // ---- state ----
+    const state = {
+      source: null,            // 'single' | 'batch' | 'video' | 'camera'
+      files: [],               // File objects for images
+      videoFile: null,
+      cameraStream: null,
+      cameraInterval: null,    // interval ID for live detection
+      capturedFrame: null,     // base64 of last captured camera frame
+      running: false,
+      detectionRun: false,     // true after detection has been run for current attachments
+      processedItems: [],      // result objects from backend
+      currentIndex: 0,
+      backendAvailable: false,
+      usingMock: true,         // true when backend is mock or unreachable
+      plantType: 'dicotyledons',
+      sampleType: 'nondestructive',
+      weightInfo: {},          // from /api/status
+      metadata: { species: '', treatment: '', replicate: '', notes: '' },
+    };
+
+    function hasChinese(text) {
+      return /[一-鿿㐀-䶿豈-﫿]/.test(text || '');
+    }
+
+    function getDetectionParams() {
+      return {
+        conf: Number($('conf').value) || 0.5,
+        iou: Number($('iou').value) || 0.7,
+        scale: Number($('scale').value) || 100,
+        plantType: state.plantType || 'dicotyledons',
+        sampleType: state.sampleType || 'nondestructive',
+      };
+    }
+
+    const sourceNames = { single: 'Image', batch: 'Folder', video: 'Video', camera: 'Camera' };
+    const canvases = { input: $('inputCanvas'), output: $('outputCanvas') };
+    const ctx = { input: canvases.input.getContext('2d'), output: canvases.output.getContext('2d') };
+
+    // ======================================================================
+    //  Toast & helpers
+    // ======================================================================
+    function toast(text, isError) {
+      const t = $('toast');
+      t.textContent = text;
+      t.className = 'toast' + (isError ? ' error' : '') + ' show';
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function pushMsg(text, who) {
+      const box = $('chatBox');
+      const msg = document.createElement('div');
+      msg.className = 'msg ' + (who || 'ai');
+      msg.textContent = text;
+      box.appendChild(msg);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function pushSystemMsg(text) {
+      const box = $('chatBox');
+      const msg = document.createElement('div');
+      msg.className = 'msg system';
+      msg.textContent = text;
+      box.appendChild(msg);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function apiCall(method, endpoint, body, isForm) {
+      const opts = { method };
+      if (body && isForm) {
+        opts.body = body;  // FormData
+      } else if (body) {
+        opts.headers = { 'Content-Type': 'application/json' };
+        opts.body = JSON.stringify(body);
+      }
+      try {
+        const resp = await fetch(API_BASE + endpoint, opts);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+        // Check if it's a blob (CSV export)
+        const ct = resp.headers.get('content-type') || '';
+        if (ct.includes('text/csv')) return { blob: await resp.blob() };
+        return await resp.json();
+      } catch (e) {
+        if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
+          throw new Error('Backend unreachable');
+        }
+        throw e;
+      }
+    }
+
+    // ======================================================================
+    //  Backend status check
+    // ======================================================================
+    async function checkBackend() {
+      const protocol = window.location.protocol;
+      const origin = window.location.origin;
+      const endpoint = '/api/status';
+      const url = API_BASE + endpoint;
+
+      try {
+        console.log('[StomaD²] Checking backend at:', url, '(page origin:', origin, ', protocol:', protocol, ')');
+
+        const data = await apiCall('GET', endpoint);
+
+        // ---- Backend IS reachable ----
+        state.backendAvailable = true;
+        state.weightInfo = data;
+
+        const availableWeights = data.detection_weights_available || [];
+        const missingWeights = data.detection_weights_missing || [];
+        const loadFailedWeights = data.detection_weights_load_failed || [];
+        const details = data.detection_weight_details || {};
+
+        const hasAnyCached = (data.cached_models && data.cached_models.length > 0);
+        const hasAnyAvailableFile = availableWeights.length > 0;
+        const hasAnyLoadFailed = loadFailedWeights.length > 0;
+        const hasAnyMissing = missingWeights.length > 0;
+
+        // Always show Backend Online when we got a valid response
+        $('statusModel').textContent = 'Backend Online';
+        $('statusDot').className = 'dot green';
+
+        // Determine usingMock: true only if NO model is actually usable (cached/loaded)
+        const usableWeights = availableWeights.filter(w => {
+          const d = details[w];
+          return d && d.exists && !d.load_failed;
+        });
+        state.usingMock = usableWeights.length === 0;
+
+        // Simplified weight display: 'N loaded' with tooltip for details
+        const loadedCount = usableWeights.length;
+        $('statusWeight').textContent = loadedCount + ' loaded';
+
+        // Build tooltip with weight details
+        const tipParts = [];
+        if (usableWeights.length > 0) {
+          tipParts.push('Loaded: ' + usableWeights.join(', '));
+        }
+        if (hasAnyLoadFailed) {
+          tipParts.push('Failed: ' + loadFailedWeights.join(', '));
+        }
+        if (hasAnyMissing) {
+          tipParts.push('Missing: ' + missingWeights.join(', '));
+        }
+        $('weightPill').title = tipParts.join(' | ');
+
+        // System message
+        if (usableWeights.length > 0) {
+          const msg = 'Backend connected. Loaded: ' + usableWeights.join(', ');
+          if (hasAnyLoadFailed) {
+            pushSystemMsg(msg + ' | Load failed: ' + loadFailedWeights.join(', '));
+          } else if (hasAnyMissing) {
+            pushSystemMsg(msg + ' | Missing: ' + missingWeights.join(', '));
+          } else {
+            pushSystemMsg(msg);
+          }
+        } else if (hasAnyLoadFailed) {
+          pushSystemMsg('WARNING: Backend online but all models failed to load: ' + loadFailedWeights.join(', ') + '. Check server console for details.');
+        } else if (hasAnyMissing) {
+          pushSystemMsg('Backend online but no weights found. Missing: ' + missingWeights.join(', ') + '. Place .pt files in the weights/ folder.');
+        }
+
+        updatePlantSampleUI(data);
+        console.log('[StomaD²] Backend online. Usable:', usableWeights, 'LoadFailed:', loadFailedWeights, 'Missing:', missingWeights);
+        return true;
+
+      } catch (e) {
+        // ---- Backend NOT reachable ----
+        state.backendAvailable = false;
+        state.usingMock = true;
+        state.weightInfo = {};
+        $('statusModel').textContent = 'Backend Unreachable';
+        $('statusDot').className = 'dot amber';
+        $('statusWeight').textContent = '0 loaded';
+        $('weightPill').title = 'Backend unreachable - connection failed';
+
+        const isNetworkError = (e.name === 'TypeError' && e.message.includes('Failed to fetch'));
+        const reason = isNetworkError
+          ? 'Cannot reach backend at ' + url + '. '
+          : 'Backend at ' + url + ' returned error: ' + e.message + '. ';
+        const hint = (protocol === 'file:')
+          ? 'You opened this page as a local file. Make sure the backend is running on http://127.0.0.1:5000 (python backend_api.py).'
+          : 'Page is served from ' + origin + ' but /api/status is not responding. Check that the backend is running.';
+        pushSystemMsg(reason + hint);
+        console.warn('[StomaD²] Backend UNREACHABLE. URL:', url, 'Protocol:', protocol, 'Error:', e.message);
+        return false;
+      }
+    }
+
+    function updatePlantSampleUI(statusData) {
+      // Build usable set: file exists AND not load_failed
+      const details = statusData.detection_weight_details || {};
+      const usable = Object.keys(details).filter(k => {
+        const d = details[k];
+        return d && d.exists && !d.load_failed;
+      });
+
+      const hasDicot = usable.some(w => w.startsWith('dicotyledons'));
+      const hasMonocot = usable.some(w => w.startsWith('monocotyledons'));
+      const hasNoninvasive = usable.some(w => w.includes('nondestructive'));
+      const hasDestructive = usable.some(w => w.includes('destructive'));
+
+      // Auto-select first available plant type if current selection is unusable
+      if (!hasDicot && hasMonocot && state.plantType === 'dicotyledons') {
+        selectPlantType('monocotyledons');
+      }
+      if (!hasMonocot && hasDicot && state.plantType === 'monocotyledons') {
+        selectPlantType('dicotyledons');
+      }
+      if (!hasNoninvasive && hasDestructive && state.sampleType === 'nondestructive') {
+        selectSampleType('destructive');
+      }
+      if (!hasDestructive && hasNoninvasive && state.sampleType === 'destructive') {
+        selectSampleType('nondestructive');
+      }
+    }
+
+    function selectPlantType(type) {
+      state.plantType = type;
+      document.querySelectorAll('[data-plant]').forEach(b => b.classList.toggle('active', b.dataset.plant === type));
+    }
+
+    function selectSampleType(type) {
+      state.sampleType = type;
+      document.querySelectorAll('[data-sample]').forEach(b => b.classList.toggle('active', b.dataset.sample === type));
+    }
+
+    document.querySelectorAll('[data-plant]').forEach(btn => {
+      btn.onclick = () => selectPlantType(btn.dataset.plant);
+    });
+    document.querySelectorAll('[data-sample]').forEach(btn => {
+      btn.onclick = () => selectSampleType(btn.dataset.sample);
+    });
+
+    // ======================================================================
+    //  Workspace drawer
+    // ======================================================================
+    function openWorkspace() { $('drawerBackdrop').classList.add('open'); $('workspaceDrawer').classList.add('open'); }
+    function closeWorkspace() { $('drawerBackdrop').classList.remove('open'); $('workspaceDrawer').classList.remove('open'); }
+    $('openWorkspaceBtn').onclick = openWorkspace;
+    $('openWorkspaceBtn2').onclick = openWorkspace;
+    $('closeWorkspaceBtn').onclick = closeWorkspace;
+    $('drawerBackdrop').onclick = closeWorkspace;
+
+    // ======================================================================
+    //  Source selection
+    // ======================================================================
+    function updateSource(source) {
+      state.source = source;
+      document.querySelectorAll('[data-source]').forEach(b => b.classList.toggle('active', b.dataset.source === source));
+      $('statusSource').textContent = sourceNames[source] || 'None';
+      updateWorkflowStatus();
+    }
+
+    function setWorkflowStatus(text) {
+      $('workflowStatus').textContent = text;
+    }
+    function updateWorkflowStatus() {
+      if (state.processedItems.length > 0) {
+        setWorkflowStatus('Detection Completed');
+      } else if (state.source) {
+        setWorkflowStatus('Input Recognized  →  Ready to Detect');
+      } else {
+        setWorkflowStatus('Agent Plan Ready');
+      }
+    }
+
+    // ======================================================================
+    //  Composer attachments (ChatGPT-style inline preview)
+    // ======================================================================
+    function updateComposerAttachments() {
+      const container = $('composerAttachments');
+      if (!container) return;
+      // Revoke old blob URLs
+      container.querySelectorAll('img[src^="blob:"]').forEach(img => URL.revokeObjectURL(img.src));
+      container.innerHTML = '';
+
+      if (!state.source) return;
+
+      // ---- Image files (single or multi, based on count, not source label) ----
+      if (state.files.length === 1) {
+        const file = state.files[0];
+        container.innerHTML =
+          '<div class="attach-card">' +
+            '<div class="attach-close" onclick="clearAttachments()" title="Remove all">×</div>' +
+            '<img class="attach-thumb" src="' + URL.createObjectURL(file) + '" alt="" />' +
+            '<div class="attach-info">' +
+              '<div class="name">' + escHtml(file.name) + '</div>' +
+              '<div class="meta">' + formatSize(file.size) + '</div>' +
+            '</div>' +
+          '</div>';
+      } else if (state.files.length > 1) {
+        // Multi-file grid – each file has its own X button
+        let html = '<div class="attach-card" style="max-width:100%;flex-wrap:wrap;">' +
+          '<div class="attach-close" onclick="clearAttachments()" title="Remove all">×</div>';
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">';
+        state.files.forEach((f, idx) => {
+          html += '<div style="position:relative;display:inline-flex;flex-direction:column;align-items:center;gap:2px;">' +
+            '<div onclick="removeFileAtIndex(' + idx + ')" title="Remove ' + escHtml(f.name) + '" ' +
+              'style="position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;' +
+              'border:1px solid var(--line);background:var(--bg1);color:var(--muted);font-size:12px;' +
+              'line-height:18px;text-align:center;cursor:pointer;z-index:2;">×</div>' +
+            '<img src="' + URL.createObjectURL(f) + '" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--line2);" />' +
+            '<span style="font-size:9px;color:var(--muted);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(f.name) + '</span>' +
+          '</div>';
+        });
+        html += '</div>';
+        html += '<div style="margin-top:6px;font-size:10.5px;color:var(--muted);">' + state.files.length + ' images &middot; first: ' + escHtml(state.files[0].name) + '</div>';
+        html += '</div>';
+        container.innerHTML = html;
+      } else if (state.source === 'video' && state.videoFile) {
+        container.innerHTML =
+          '<div class="attach-card">' +
+            '<div class="attach-close" onclick="clearAttachments()" title="Remove">×</div>' +
+            '<div class="attach-thumb icon">&#x1F3AC;</div>' +
+            '<div class="attach-info">' +
+              '<div class="name">' + escHtml(state.videoFile.name) + '</div>' +
+              '<div class="meta">' + formatSize(state.videoFile.size) + '</div>' +
+            '</div>' +
+          '</div>';
+      } else if (state.source === 'camera' && state.cameraStream) {
+        container.innerHTML =
+          '<div class="attach-camera">' +
+            '<div class="live-dot"></div>' +
+            '<div class="live-label">Live Capture Active</div>' +
+            '<button class="btn" onclick="captureAndDetectFrame(); openWorkspace();" style="font-size:10px;min-height:26px;">Capture Frame</button>' +
+            '<button class="btn primary" onclick="startLiveCameraDetect()" style="font-size:10px;min-height:26px;">Start Live Detection</button>' +
+            '<div class="attach-close" onclick="stopCamera(); clearAttachments();" title="Stop camera">×</div>' +
+          '</div>';
+      }
+    }
+
+    function clearAttachments() {
+      const container = $('composerAttachments');
+      if (container) {
+        container.querySelectorAll('img[src^="blob:"]').forEach(img => URL.revokeObjectURL(img.src));
+        container.innerHTML = '';
+      }
+      stopCamera();
+      state.source = null;
+      state.files = [];
+      state.videoFile = null;
+      state.capturedFrame = null;
+      state.detectionRun = false;
+      document.querySelectorAll('[data-source]').forEach(b => b.classList.remove('active'));
+      $('statusSource').textContent = 'None';
+      $('qcImageText').textContent = 'Waiting for input';
+      updateWorkflowStatus();
+    }
+
+    function escHtml(s) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(s));
+      return div.innerHTML;
+    }
+
+    function formatSize(bytes) {
+      if (!bytes || bytes === 0) return 'Unknown size';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function startLiveCameraDetect() {
+      if (!state.cameraStream) return;
+      state.running = true;
+      state.processedItems = [];
+      $('runState').textContent = 'Live detecting...';
+      $('sideRunState').textContent = 'Live';
+      toast('Live detection started – every 2s');
+      pushMsg('Live camera detection started. Capturing frames every 2 seconds.');
+      captureAndDetectFrame();
+      state.cameraInterval = setInterval(async () => {
+        if (!state.running) { clearInterval(state.cameraInterval); state.cameraInterval = null; return; }
+        await captureAndDetectFrame();
+      }, 2000);
+    }
+
+    // Upload menu toggle
+    const uploadMenuBtn = document.getElementById('uploadMenuBtn');
+    const uploadDropdown = document.getElementById('uploadDropdown');
+    if (uploadMenuBtn && uploadDropdown) {
+      uploadMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        uploadDropdown.classList.toggle('show');
+      });
+      document.addEventListener('click', (e) => {
+        if (!uploadDropdown.contains(e.target) && e.target !== uploadMenuBtn) {
+          uploadDropdown.classList.remove('show');
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-source]').forEach(btn => {
+      btn.onclick = () => {
+        const s = btn.dataset.source;
+        updateSource(s);
+        if (s === 'single') $('singleImageInput').click();
+        if (s === 'batch') $('batchImageInput').click();
+        if (s === 'video') $('videoInput').click();
+        if (s === 'camera') startCamera();
+        // Close dropdown after selection
+        if (uploadDropdown) uploadDropdown.classList.remove('show');
+      };
+    });
+
+    // ======================================================================
+    //  Advanced params – sync display
+    // ======================================================================
+    ['iou', 'conf'].forEach(id => {
+      $(id).addEventListener('input', () => $(id + 'Out').textContent = Number($(id).value).toFixed(2));
+    });
+    $('step').addEventListener('input', () => $('stepOut').textContent = $('step').value);
+    $('scale').addEventListener('input', () => {
+      $('scaleOut').textContent = $('scale').value;
+      $('qcScaleText').textContent = 'Scale: ' + $('scale').value + ' μm';
+    });
+
+    // ======================================================================
+    //  Image preview helpers (canvas)
+    // ======================================================================
+    function clearCanvas(context, canvas) { context.clearRect(0, 0, canvas.width, canvas.height); }
+
+    function drawImageToCanvas(img, canvas, context) {
+      const cw = canvas.width, ch = canvas.height;
+      clearCanvas(context, canvas);
+      const scale = Math.min(cw / img.width, ch / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      context.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+    }
+
+    function drawBase64ToCanvas(b64, canvas, context) {
+      const img = new Image();
+      img.onload = () => drawImageToCanvas(img, canvas, context);
+      img.src = 'data:image/jpeg;base64,' + b64;
+    }
+
+    function fileToImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    function hideInputEmpty() { $('inputEmpty').style.display = 'none'; canvases.input.style.display = 'block'; }
+    function hideOutputEmpty() { $('outputEmpty').style.display = 'none'; canvases.output.style.display = 'block'; }
+
+    function previewImage(img, label) {
+      const video = $('videoPreview');
+      video.pause(); video.srcObject = null; video.src = ''; video.style.display = 'none';
+      canvases.input.style.display = 'block';
+      drawImageToCanvas(img, canvases.input, ctx.input);
+      $('inputInfo').textContent = label || 'Image';
+      hideInputEmpty();
+      clearCanvas(ctx.output, canvases.output);
+      $('outputEmpty').style.display = 'grid';
+    }
+
+    function showVideo(file) {
+      const video = $('videoPreview');
+      video.srcObject = null;
+      video.src = URL.createObjectURL(file);
+      video.controls = true;
+      video.style.display = 'block';
+      canvases.input.style.display = 'none';
+      hideInputEmpty();
+      $('inputInfo').textContent = file.name;
+      clearCanvas(ctx.output, canvases.output);
+      $('outputEmpty').style.display = 'grid';
+    }
+
+    function setItemCount(n) {
+      $('sideItemCount').textContent = n;
+      $('drawerItems').textContent = n;
+    }
+
+    // ======================================================================
+    //  Metrics display
+    // ======================================================================
+    function updateMetrics(m) {
+      $('density').textContent = m.stoma_density_mm2 != null ? Number(m.stoma_density_mm2).toFixed(4) : '—';
+      $('conductance').textContent = m.conductance != null ? Number(m.conductance).toFixed(4) : '—';
+      $('conductanceTop').textContent = m.conductance != null ? Number(m.conductance).toFixed(3) : '—';
+      $('stomaLength').textContent = m.stoma_avg_width_um != null ? Number(m.stoma_avg_width_um).toFixed(4) : '—';
+      $('stomaWidth').textContent = m.stoma_avg_height_um != null ? Number(m.stoma_avg_height_um).toFixed(4) : '—';
+      $('stomaAspect').textContent = m.stoma_aspect_ratio != null ? Number(m.stoma_aspect_ratio).toFixed(4) : '—';
+      $('apertureLength').textContent = m.aperture_avg_width_um != null ? Number(m.aperture_avg_width_um).toFixed(4) : '—';
+      $('apertureWidth').textContent = m.aperture_avg_height_um != null ? Number(m.aperture_avg_height_um).toFixed(4) : '—';
+      $('apertureAspect').textContent = m.aperture_aspect_ratio != null ? Number(m.aperture_aspect_ratio).toFixed(4) : '—';
+      $('stomaCount').textContent = m.stoma_count != null ? m.stoma_count : '—';
+      $('apertureCount').textContent = m.aperture_count != null ? m.aperture_count : '—';
+      $('imageArea').textContent = m.image_area_mm2 != null ? Number(m.image_area_mm2).toFixed(4) + ' mm²' : '— mm²';
+      $('sideDensity').textContent = m.stoma_density_mm2 != null ? Number(m.stoma_density_mm2).toFixed(2) : '—';
+      $('stomaCountSide').textContent = m.stoma_count != null ? m.stoma_count : '—';
+      $('qcReviewText').textContent = 'Overlay available; manual review recommended for crowded regions';
+      const qcrs = document.getElementById('qcReviewStatus');
+      if (qcrs) { qcrs.textContent = 'Needs review'; qcrs.className = 'mod-status warn'; }
+      $('qcImageText').textContent = 'Detection complete; check overlay in Workspace';
+    }
+
+    // ======================================================================
+    //  Show item in workspace
+    // ======================================================================
+    function showItem(index) {
+      if (!state.processedItems.length) return;
+      state.currentIndex = index;
+      const item = state.processedItems[index];
+
+      // input side
+      if (item.input_b64) {
+        drawBase64ToCanvas(item.input_b64, canvases.input, ctx.input);
+        canvases.input.style.display = 'block';
+        $('videoPreview').style.display = 'none';
+        hideInputEmpty();
+      } else if (item.kind === 'video') {
+        showVideo(item.fileRef || state.videoFile);
+      } else if (item.kind === 'camera') {
+        $('inputInfo').textContent = 'Camera stream';
+      }
+
+      // output side
+      if (item.overlay_b64) {
+        drawBase64ToCanvas(item.overlay_b64, canvases.output, ctx.output);
+        hideOutputEmpty();
+        console.log('[visualization] using original image for overlay, boxes drawn on copy, BGR→JPEG via cv2.imencode (no RGB swap)');
+      }
+
+      $('inputInfo').textContent = item.fileName || 'Image';
+      $('outputInfo').textContent = item.is_mock ? 'OBB overlay (MOCK)' : 'OBB overlay';
+      updateMetrics(item.metrics);
+
+      // mock tag with reason
+      if (item.is_mock && item.mock_reason) {
+        $('mockTag').textContent = 'MOCK: ' + item.mock_reason.substring(0, 60);
+        $('mockTag').style.display = 'inline-block';
+        $('qcImageText').textContent = item.mock_reason.substring(0, 80);
+      } else if (item.is_mock) {
+        $('mockTag').textContent = 'MOCK DATA';
+        $('mockTag').style.display = 'inline-block';
+      } else {
+        $('mockTag').style.display = 'none';
+        $('qcImageText').textContent = 'Real YOLO-OBB detection';
+      }
+
+      // navigation
+      $('navIndicator').textContent = (index + 1) + ' / ' + state.processedItems.length;
+      $('prevBtn').disabled = index === 0;
+      $('nextBtn').disabled = index === state.processedItems.length - 1;
+    }
+
+    function showNavigation() {
+      const nav = $('navStrip');
+      if (state.processedItems.length > 1 && state.source === 'batch') nav.classList.add('show');
+      else nav.classList.remove('show');
+    }
+
+    $('prevBtn').onclick = () => { if (state.currentIndex > 0) showItem(state.currentIndex - 1); };
+    $('nextBtn').onclick = () => {
+      if (state.currentIndex < state.processedItems.length - 1) showItem(state.currentIndex + 1);
+    };
+
+    // ======================================================================
+    //  Client-side mock detection (fallback when backend is unreachable)
+    // ======================================================================
+    function mockDetectLocally(imageFile, seed) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const c = canvas.getContext('2d');
+          c.drawImage(img, 0, 0);
+
+          const rng = seed || Math.random;
+          const nStomata = 24 + Math.floor((seed || Math.random()) * 30);
+          const nAperture = Math.max(8, nStomata - Math.floor((seed || Math.random()) * 10));
+
+          // Draw simulated boxes
+          const boxes = [];
+          for (let i = 0; i < nStomata; i++) {
+            const cx = 0.15 * img.width + (typeof rng === 'function' ? rng() : rng) * 0.7 * img.width;
+            const cy = 0.15 * img.height + Math.random() * 0.7 * img.height;
+            const bw = 0.03 * img.width + Math.random() * 0.05 * img.width;
+            const bh = 0.015 * img.height + Math.random() * 0.025 * img.height;
+            const angle = Math.random() * Math.PI;
+            boxes.push([cx, cy, bw, bh, angle, 0]);
+            drawRotatedBox(c, cx, cy, bw, bh, angle, '#9edff4');
+          }
+          for (let i = 0; i < nAperture; i++) {
+            const cx = 0.15 * img.width + Math.random() * 0.7 * img.width;
+            const cy = 0.15 * img.height + Math.random() * 0.7 * img.height;
+            const bw = 0.015 * img.width + Math.random() * 0.035 * img.width;
+            const bh = 0.005 * img.height + Math.random() * 0.015 * img.height;
+            const angle = Math.random() * Math.PI;
+            boxes.push([cx, cy, bw, bh, angle, 1]);
+            drawRotatedBox(c, cx, cy, bw, bh, angle, '#69dfb4');
+          }
+
+          // Add mock watermark
+          c.fillStyle = 'rgba(241,209,123,0.9)';
+          c.font = '14px Inter, sans-serif';
+          c.fillText('MOCK DETECTION', 10, 28);
+
+          const overlayB64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+          // Calculate mock metrics (approximate the backend calc)
+          const refPx = 224;
+          const scaleUm = Number($('scale').value) || 100;
+          const scaleFactor = scaleUm / refPx;
+          const stomaW = boxes.filter(b => b[5] === 0).map(b => b[2]);
+          const stomaH = boxes.filter(b => b[5] === 0).map(b => b[3]);
+          const apertureW = boxes.filter(b => b[5] === 1).map(b => b[2]);
+          const apertureH = boxes.filter(b => b[5] === 1).map(b => b[3]);
+
+          const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+          const stomaAvgW = avg(stomaW) ? avg(stomaW) * scaleFactor : null;
+          const stomaAvgH = avg(stomaH) ? avg(stomaH) * scaleFactor : null;
+          const apertureAvgW = avg(apertureW) ? avg(apertureW) * scaleFactor : null;
+          const apertureAvgH = avg(apertureH) ? avg(apertureH) * scaleFactor : null;
+
+          const imgAreaMm2 = (img.height / refPx) * (img.width / refPx) * (scaleUm / 1000) ** 2;
+          const density = imgAreaMm2 > 0 && nStomata > 0 ? nStomata / imgAreaMm2 : null;
+
+          let cond = null;
+          if (apertureAvgH && density && apertureAvgW) {
+            const alpha = (apertureAvgH / 2) ** 2 * Math.PI;
+            cond = (24.9e-6 * density * alpha) / (1.6 * 22.4e-3 * (apertureAvgW + Math.sqrt(alpha * Math.PI / 4)));
+          }
+
+          const inputCanvas = document.createElement('canvas');
+          inputCanvas.width = img.width;
+          inputCanvas.height = img.height;
+          inputCanvas.getContext('2d').drawImage(img, 0, 0);
+
+          resolve({
+            fileName: imageFile.name,
+            input_b64: inputCanvas.toDataURL('image/jpeg', 0.85).split(',')[1],
+            overlay_b64: overlayB64,
+            boxes: boxes,
+            metrics: {
+              stoma_count: nStomata,
+              aperture_count: nAperture,
+              stoma_avg_width_um: stomaAvgW ? +stomaAvgW.toFixed(4) : null,
+              stoma_avg_height_um: stomaAvgH ? +stomaAvgH.toFixed(4) : null,
+              stoma_aspect_ratio: stomaAvgH && stomaAvgW ? +(stomaAvgH / stomaAvgW).toFixed(4) : null,
+              aperture_avg_width_um: apertureAvgW ? +apertureAvgW.toFixed(4) : null,
+              aperture_avg_height_um: apertureAvgH ? +apertureAvgH.toFixed(4) : null,
+              aperture_aspect_ratio: apertureAvgH && apertureAvgW ? +(apertureAvgH / apertureAvgW).toFixed(4) : null,
+              stoma_density_mm2: density ? +density.toFixed(4) : null,
+              conductance: cond ? +cond.toFixed(4) : null,
+              image_area_mm2: +imgAreaMm2.toFixed(4),
+            },
+            is_mock: true,
+            kind: 'single',
+            source: 'single',
+          });
+        };
+        img.src = URL.createObjectURL(imageFile);
+      });
+    }
+
+    function drawRotatedBox(context, cx, cy, w, h, angle, color) {
+      context.save();
+      context.translate(cx, cy);
+      context.rotate(angle);
+      context.strokeStyle = color;
+      context.lineWidth = 2;
+      context.shadowColor = color;
+      context.shadowBlur = 6;
+      context.strokeRect(-w / 2, -h / 2, w, h);
+      context.shadowBlur = 0;
+      context.restore();
+    }
+
+    // ======================================================================
+    //  Run detection (real backend or local mock)
+    //  Core logic extracted so both "Run Detection" button and send can share it
+    // ======================================================================
+    async function runDetectionCore({ updateUI = true } = {}) {
+      if (state.running) return null;
+
+      if (!state.source) { toast('Please select an input source first', true); return null; }
+      if (state.source === 'single' && !state.files.length) { toast('Please load an image first', true); return null; }
+      if (state.source === 'batch' && !state.files.length) { toast('Please load a folder first', true); return null; }
+      if (state.source === 'video' && !state.videoFile) { toast('Please load a video first', true); return null; }
+
+      state.running = true;
+      state.processedItems = [];
+      state.currentIndex = 0;
+
+      if (updateUI) {
+        $('runState').textContent = 'Running...';
+        $('sideRunState').textContent = 'Running...';
+        $('progressBar').style.width = '0%';
+        $('progressValue').textContent = '0%';
+        setWorkflowStatus('Detection Running...');
+      }
+
+      const { conf, iou, scale, plantType, sampleType } = getDetectionParams();
+
+      try {
+        if (state.files.length === 1) {
+          const form = new FormData();
+          form.append('image', state.files[0]);
+          form.append('conf', conf);
+          form.append('iou', iou);
+          form.append('scale', scale);
+          form.append('plant_type', plantType);
+          form.append('sample_type', sampleType);
+          form.append('session_id', SESSION_ID);
+
+          let result;
+          if (state.backendAvailable) {
+            result = await apiCall('POST', '/api/detect/single', form, true);
+          } else {
+            result = await mockDetectLocally(state.files[0], 0.42);
+          }
+
+          result.fileName = result.file_name || state.files[0].name;
+          result.kind = 'single';
+          state.processedItems = [result];
+
+        } else if (state.files.length > 1) {
+          const form = new FormData();
+          state.files.forEach(f => form.append('images', f));
+          form.append('conf', conf);
+          form.append('iou', iou);
+          form.append('scale', scale);
+          form.append('plant_type', plantType);
+          form.append('sample_type', sampleType);
+          form.append('session_id', SESSION_ID);
+
+          let batchResult;
+          if (state.backendAvailable) {
+            batchResult = await apiCall('POST', '/api/detect/batch', form, true);
+          } else {
+            batchResult = { results: [], total: state.files.length };
+            for (let i = 0; i < state.files.length; i++) {
+              const r = await mockDetectLocally(state.files[i], (i + 1) / (state.files.length + 2));
+              r.fileName = state.files[i].name;
+              r.kind = 'batch';
+              batchResult.results.push({ ...r, success: true, index: i });
+              if (updateUI) {
+                const pct = Math.round(((i + 1) / state.files.length) * 100);
+                $('progressBar').style.width = pct + '%';
+                $('progressValue').textContent = pct + '%';
+              }
+            }
+          }
+
+          state.processedItems = batchResult.results.map((r, i) => ({
+            ...r,
+            fileName: r.file_name || (state.files[i] ? state.files[i].name : ''),
+            kind: 'batch',
+            fileRef: state.files[i] || null,
+            metrics: r.metrics || {},
+          }));
+
+        } else if (state.source === 'video') {
+          const form = new FormData();
+          form.append('video', state.videoFile);
+          form.append('conf', conf);
+          form.append('iou', iou);
+          form.append('scale', scale);
+          form.append('frame_interval', 30);
+          form.append('plant_type', plantType);
+          form.append('sample_type', sampleType);
+          form.append('session_id', SESSION_ID);
+
+          let videoResult;
+          if (state.backendAvailable) {
+            videoResult = await apiCall('POST', '/api/detect/video', form, true);
+          } else {
+            const frameCount = 3;
+            videoResult = { results: [], detected_frames: frameCount };
+            for (let i = 0; i < frameCount; i++) {
+              const r = await mockDetectLocally(
+                new File([new ArrayBuffer(8)], state.videoFile.name + '_frame_' + i, { type: 'image/jpeg' }),
+                (i + 1) / (frameCount + 2)
+              );
+              r.fileName = state.videoFile.name + ' (frame ' + i + ')';
+              r.kind = 'video';
+              videoResult.results.push({ ...r, frame_index: i * 30, timestamp_sec: i });
+            }
+          }
+
+          state.processedItems = videoResult.results.map((r, i) => ({
+            ...r,
+            fileName: r.file_name || (state.videoFile.name + ' frame ' + i),
+            kind: 'video',
+            fileRef: state.videoFile,
+            metrics: r.metrics || {},
+          }));
+        }
+
+        // Done
+        state.running = false;
+        state.detectionRun = true;
+
+        if (updateUI) {
+          $('runState').textContent = 'Completed';
+          $('sideRunState').textContent = 'Completed';
+          $('progressBar').style.width = '100%';
+          $('progressValue').textContent = '100%';
+          setWorkflowStatus('Detection Completed');
+          showNavigation();
+
+          if (state.processedItems.length > 0) {
+            showItem(0);
+            const m = state.processedItems[0].metrics || {};
+            const mockNote = state.processedItems[0].is_mock ? ' [MOCK: ' + (state.processedItems[0].mock_reason || 'no weights') + ']' : '';
+            const modelInfo = state.processedItems[0].is_mock ? '' : ' [' + plantType + '/' + sampleType + ']';
+            $('agentOutputText').textContent =
+              'Completed' + modelInfo + mockNote + '. First item: density ' + (m.stoma_density_mm2 || '?') +
+              ' stomata/mm^2; ' + (m.stoma_count || '?') + ' stomata, ' +
+              (m.aperture_count || '?') + ' apertures. Open Workspace for details.';
+            // Update agent output status indicator
+            const aos = document.getElementById('agentOutputStatus');
+            if (aos) {
+              aos.textContent = state.processedItems[0].is_mock ? 'Mock result' : 'Detection complete';
+              aos.className = 'mod-status ' + (state.processedItems[0].is_mock ? 'warn' : 'ok');
+            }
+            // Hide guide cards after first successful detection
+            const gc = document.getElementById('guideCards');
+            if (gc) gc.style.display = 'none';
+            toast('Agent analysis completed' + mockNote);
+          }
+        }
+
+        setItemCount(state.processedItems.length);
+        return state.processedItems;
+
+      } catch (e) {
+        state.running = false;
+        if (updateUI) {
+          $('runState').textContent = 'Error';
+          $('sideRunState').textContent = 'Error';
+        }
+        toast('Detection failed: ' + e.message, true);
+        pushMsg('Detection failed: ' + e.message);
+        return null;
+      }
+    }
+
+    async function runDetection() {
+      const results = await runDetectionCore({ updateUI: true });
+      if (results && results.length > 0) {
+        const m = results[0].metrics || {};
+        const mockNote = results[0].is_mock ? ' [MOCK: ' + (results[0].mock_reason || 'no weights') + ']' : '';
+        const modelInfo = results[0].is_mock ? '' : ' [' + state.plantType + '/' + state.sampleType + ']';
+        pushMsg(
+          'Detection completed' + modelInfo + mockNote + '. I found ' + (m.stoma_count || '?') +
+          ' stomata and ' + (m.aperture_count || '?') + ' aperture regions. Density is ' +
+          (m.stoma_density_mm2 || '?') + ' stomata/mm^2. Open the workspace to inspect overlays and detailed metrics.'
+        );
+      }
+      return results;
+    }
+
+    $('runAgentBtn').onclick = runDetection;
+
+    // ======================================================================
+    //  Camera
+    // ======================================================================
+    async function startCamera() {
+      try {
+        stopCamera();
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+        state.cameraStream = stream;
+        state.files = [];
+        state.videoFile = null;
+        state.capturedFrame = null;
+        state.detectionRun = false;
+        updateSource('camera');
+        const video = $('videoPreview');
+        video.srcObject = stream;
+        video.controls = false;
+        video.style.display = 'block';
+        canvases.input.style.display = 'none';
+        hideInputEmpty();
+        video.play();
+        $('inputInfo').textContent = 'Live camera stream';
+        setItemCount(1);
+        $('qcImageText').textContent = 'Live stream active';
+        updateComposerAttachments();
+        toast('Camera started – use the preview controls or click Run Detection to begin');
+        pushMsg('Camera stream active. I can capture frames and run real-time stomata detection. Use the preview controls or click "Run Detection" to start.');
+      } catch (e) {
+        toast('Camera unavailable: ' + e.message, true);
+      }
+    }
+
+    function stopCamera() {
+      if (state.cameraInterval) { clearInterval(state.cameraInterval); state.cameraInterval = null; }
+      if (state.cameraStream) {
+        state.cameraStream.getTracks().forEach(t => t.stop());
+        state.cameraStream = null;
+      }
+    }
+
+    async function captureAndDetectFrame() {
+      if (!state.cameraStream) return null;
+      const video = $('videoPreview');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const c = canvas.getContext('2d');
+      c.drawImage(video, 0, 0);
+      const frameB64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      state.capturedFrame = frameB64;  // save for send-with-attachment flow
+
+      if (state.backendAvailable) {
+        try {
+          const result = await apiCall('POST', '/api/detect/frame', {
+            image_b64: frameB64,
+            conf: Number($('conf').value) || 0.5,
+            iou: Number($('iou').value) || 0.7,
+            scale: Number($('scale').value) || 100,
+            plant_type: state.plantType,
+            sample_type: state.sampleType,
+            session_id: SESSION_ID,
+          });
+          result.fileName = 'camera_' + new Date().toISOString().slice(11, 19);
+          result.kind = 'camera';
+          state.processedItems = [result];
+          state.detectionRun = true;
+          setItemCount(1);
+          showItem(0);
+          return result;
+        } catch (e) {
+          return null;
+        }
+      } else {
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+        const file = new File([blob], 'camera_frame.jpg', { type: 'image/jpeg' });
+        const result = await mockDetectLocally(file, Math.random());
+        result.fileName = 'camera_' + new Date().toISOString().slice(11, 19);
+        result.kind = 'camera';
+        state.processedItems = [result];
+        state.detectionRun = true;
+        setItemCount(1);
+        showItem(0);
+        return result;
+      }
+    }
+
+    // Patch runDetection for camera mode – delegates to live detection flow
+    const origRunDetection = runDetection;
+    runDetection = async function () {
+      if (state.source === 'camera') {
+        if (!state.cameraStream) { toast('Please start the camera first', true); return; }
+        state.running = true;
+        state.processedItems = [];
+        $('runState').textContent = 'Live detecting...';
+        $('sideRunState').textContent = 'Live';
+        setWorkflowStatus('Live Detection Active');
+        toast('Live detection started – capturing every 2 seconds');
+        pushMsg('Live camera detection started. I am capturing frames every 2 seconds and running detection.');
+
+        await captureAndDetectFrame();
+
+        state.cameraInterval = setInterval(async () => {
+          if (!state.running) { clearInterval(state.cameraInterval); state.cameraInterval = null; return; }
+          await captureAndDetectFrame();
+        }, 2000);
+        return;
+      }
+      return origRunDetection();
+    };
+
+    // ======================================================================
+    //  CSV Export
+    // ======================================================================
+    async function exportCSV() {
+      if (!state.processedItems.length) { toast('No results to export', true); return; }
+
+      if (state.backendAvailable) {
+        try {
+          const result = await apiCall('POST', '/api/export/csv', { session_id: SESSION_ID });
+          if (result.blob) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(result.blob);
+            a.download = 'stomata_results_' + SESSION_ID + '.csv';
+            a.click();
+            toast('CSV exported from backend');
+            return;
+          }
+        } catch (e) {
+          // fall through to client-side export
+        }
+      }
+
+      // Client-side CSV fallback
+      const header = [
+        'file name', 'stomata average height (um)', 'stomata average width (um)',
+        'stomata aspect ratio', 'aperture average height (um)', 'aperture average width (um)',
+        'aperture aspect ratio', 'stomata density (stomata * mm-2)', 'conductance (mol m-2 s-1)',
+        'stoma count', 'aperture count', 'image area (mm2)', 'is_mock'
+      ];
+      const lines = [header.join(',')];
+      state.processedItems.forEach(item => {
+        const m = item.metrics || {};
+        lines.push([
+          item.fileName || '',
+          m.stoma_avg_height_um ?? 'nan', m.stoma_avg_width_um ?? 'nan',
+          m.stoma_aspect_ratio ?? 'nan', m.aperture_avg_height_um ?? 'nan',
+          m.aperture_avg_width_um ?? 'nan', m.aperture_aspect_ratio ?? 'nan',
+          m.stoma_density_mm2 ?? 'nan', m.conductance ?? 'nan',
+          m.stoma_count ?? 'nan', m.aperture_count ?? 'nan',
+          m.image_area_mm2 ?? 'nan', item.is_mock ? 'true' : 'false'
+        ].join(','));
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'stomata_results_' + SESSION_ID + '.csv';
+      a.click();
+      toast('CSV exported (client-side)');
+    }
+    $('saveBtn').onclick = exportCSV;
+
+    // ======================================================================
+    //  Reset
+    // ======================================================================
+    function resetAll() {
+      stopCamera();
+      state.source = null; state.files = []; state.videoFile = null; state.running = false;
+      state.capturedFrame = null; state.detectionRun = false;
+      state.processedItems = []; state.currentIndex = 0;
+
+      document.querySelectorAll('[data-source]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.step').forEach((s, i) => s.classList.toggle('active', i === 0));
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('done'));
+
+      $('statusSource').textContent = 'None';
+      $('runState').textContent = 'Ready';
+      $('sideRunState').textContent = 'Ready';
+      $('progressBar').style.width = '0%';
+      $('progressValue').textContent = '0%';
+
+      const video = $('videoPreview');
+      video.pause(); video.srcObject = null; video.src = ''; video.style.display = 'none';
+      canvases.input.style.display = 'block';
+      clearCanvas(ctx.input, canvases.input);
+      clearCanvas(ctx.output, canvases.output);
+      $('inputInfo').textContent = 'No file';
+      $('inputEmpty').style.display = 'grid';
+      $('outputEmpty').style.display = 'grid';
+      $('navStrip').classList.remove('show');
+      $('mockTag').style.display = 'none';
+
+      ['density', 'conductance', 'conductanceTop', 'stomaLength', 'stomaWidth', 'stomaAspect',
+       'apertureLength', 'apertureWidth', 'apertureAspect', 'stomaCount', 'apertureCount',
+       'stomaCountSide', 'sideDensity'
+      ].forEach(id => $(id).textContent = '—');
+      $('imageArea').textContent = '— mm²';
+      setItemCount(0);
+
+      $('agentOutputText').textContent = 'No analysis yet. The agent summarizes density, aperture traits, quality warnings, and export options after detection.';
+      $('qcImageText').textContent = 'Waiting for input';
+      $('qcReviewText').textContent = 'Pending';
+
+      // Clear backend session too
+      if (state.backendAvailable) {
+        apiCall('POST', '/api/session/reset', { session_id: SESSION_ID }).catch(() => {});
+      }
+
+      // Reset composer attachments
+      clearAttachments();
+      setWorkflowStatus('Agent Plan Ready');
+
+      toast('Reset completed');
+    }
+    $('resetBtn').onclick = resetAll;
+
+    // ======================================================================
+    //  File input handlers
+    // ======================================================================
+    // Add individual file removal helper
+    function removeFileAtIndex(index) {
+      if (index < 0 || index >= state.files.length) return;
+      state.files.splice(index, 1);
+      if (state.files.length === 0) {
+        // All files removed — revert to no-source state
+        clearAttachments();
+      } else {
+        // Still have files — refresh composer and auto-detect source
+        autoDetectSourceFromFiles();
+        updateComposerAttachments();
+        setItemCount(state.files.length);
+        $('qcImageText').textContent = state.files.length + ' image(s) loaded';
+        const first = state.files[0];
+        fileToImage(first).then(img => previewImage(img, first.name));
+        toast('Removed image. ' + state.files.length + ' remaining.');
+      }
+    }
+
+    function autoDetectSourceFromFiles() {
+      if (state.files.length === 1) {
+        updateSource('single');
+      } else if (state.files.length > 1) {
+        updateSource('batch');
+      }
+    }
+
+    $('singleImageInput').onchange = async e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      // Append to existing files (ChatGPT-style accumulation)
+      state.files.push(file);
+      state.videoFile = null;
+      state.detectionRun = false;
+      state.capturedFrame = null;
+      stopCamera();
+      autoDetectSourceFromFiles();
+      const img = await fileToImage(file);
+      previewImage(img, file.name);
+      setItemCount(state.files.length);
+      $('qcImageText').textContent = state.files.length + ' image(s) loaded; ready for inference';
+      updateComposerAttachments();
+      if (state.files.length === 1) {
+        pushMsg('Image loaded: **' + file.name + '** (' + formatSize(file.size) + '). Click "Run Detection" or send a message to begin.');
+      } else {
+        pushMsg('Image added: **' + file.name + '** (' + formatSize(file.size) + '). Now ' + state.files.length + ' images pending. Will auto-detect as batch.');
+      }
+      toast(state.files.length === 1 ? 'Image loaded: ' + file.name : 'Added (' + state.files.length + ' total): ' + file.name);
+      // Reset the file input so the same file can be re-selected
+      e.target.value = '';
+    };
+
+    $('batchImageInput').onchange = async e => {
+      const newFiles = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+      if (!newFiles.length) return;
+      // Append batch files to any existing pending files (ChatGPT-style accumulation)
+      state.files.push(...newFiles);
+      state.videoFile = null;
+      state.detectionRun = false;
+      state.capturedFrame = null;
+      stopCamera();
+      updateSource('batch');
+      const img = await fileToImage(state.files[0]);
+      previewImage(img, state.files[0].name);
+      setItemCount(state.files.length);
+      $('qcImageText').textContent = state.files.length + ' images loaded';
+      updateComposerAttachments();
+      pushMsg('Batch loaded: **' + newFiles.length + ' images** added (total ' + state.files.length + '). Click "Run Detection" or send a message to begin.');
+      toast('Folder loaded: ' + newFiles.length + ' images (total ' + state.files.length + ')');
+      e.target.value = '';
+    };
+
+    $('videoInput').onchange = e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      state.videoFile = file;
+      state.files = [];
+      state.detectionRun = false;
+      state.capturedFrame = null;
+      stopCamera();
+      updateSource('video');
+      showVideo(file);
+      setItemCount(1);
+      $('qcImageText').textContent = 'Video loaded; frame extraction on detection';
+      updateComposerAttachments();
+      pushMsg('Video loaded: **' + file.name + '** (' + formatSize(file.size) + '). I can now extract frames and run stomata detection. Click "Run Detection" or send a message to begin.');
+      toast('Video loaded: ' + file.name);
+    };
+
+    // ======================================================================
+    //  Chat / Agent interaction  (attachment-aware, ChatGPT-style)
+    // ======================================================================
+
+    function buildBatchSummary(items) {
+      if (!items || items.length === 0) return '';
+      const totalStomata = items.reduce((s, it) => s + ((it.metrics && it.metrics.stoma_count) || 0), 0);
+      const densities = items.map(it => it.metrics && it.metrics.stoma_density_mm2).filter(v => v != null);
+      const avgDensity = densities.length ? (densities.reduce((a, b) => a + b, 0) / densities.length).toFixed(4) : '?';
+      return 'Batch: ' + items.length + ' images, ' + totalStomata + ' total stomata, avg density ' + avgDensity + ' stomata/mm²';
+    }
+
+    function buildVideoSummary(items) {
+      if (!items || items.length === 0) return '';
+      const totalStomata = items.reduce((s, it) => s + ((it.metrics && it.metrics.stoma_count) || 0), 0);
+      const densities = items.map(it => it.metrics && it.metrics.stoma_density_mm2).filter(v => v != null);
+      const avgDensity = densities.length ? (densities.reduce((a, b) => a + b, 0) / densities.length).toFixed(4) : '?';
+      return 'Video: ' + items.length + ' frames analyzed, ' + totalStomata + ' total stomata, avg density ' + avgDensity + ' stomata/mm²';
+    }
+
+    function buildUserMessageHTML(text, hasAttachments) {
+      let html = '';
+      if (hasAttachments && state.source) {
+        if (state.files.length === 1) {
+          const f = state.files[0];
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;border-radius:10px;background:rgba(0,0,0,.12);">';
+          html += '<img src="' + URL.createObjectURL(f) + '" style="width:36px;height:36px;border-radius:6px;object-fit:cover;" />';
+          html += '<div style="font-size:10.5px;opacity:.85;">' + escHtml(f.name) + '<br>' + formatSize(f.size) + '</div>';
+          html += '</div>';
+        } else if (state.files.length > 1) {
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;border-radius:10px;background:rgba(0,0,0,.12);">';
+          html += '<div style="display:flex;gap:3px;">';
+          const preview = state.files.slice(0, 3);
+          preview.forEach(f => { html += '<img src="' + URL.createObjectURL(f) + '" style="width:28px;height:28px;border-radius:5px;object-fit:cover;" />'; });
+          if (state.files.length > 3) html += '<div style="width:28px;height:28px;border-radius:5px;background:rgba(0,0,0,.2);display:grid;place-items:center;font-size:8px;">+' + (state.files.length - 3) + '</div>';
+          html += '</div>';
+          html += '<div style="font-size:10.5px;opacity:.85;">' + state.files.length + ' images</div>';
+          html += '</div>';
+        } else if (state.source === 'video' && state.videoFile) {
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;border-radius:10px;background:rgba(0,0,0,.12);">';
+          html += '<div style="width:36px;height:36px;border-radius:6px;background:rgba(0,0,0,.2);display:grid;place-items:center;font-size:16px;">🎬</div>';
+          html += '<div style="font-size:10.5px;opacity:.85;">' + escHtml(state.videoFile.name) + '<br>' + formatSize(state.videoFile.size) + '</div>';
+          html += '</div>';
+        } else if (state.source === 'camera') {
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;border-radius:10px;background:rgba(0,0,0,.12);">';
+          html += '<div style="width:9px;height:9px;border-radius:50%;background:#ff5e4d;box-shadow:0 0 0 3px rgba(255,94,77,.18);"></div>';
+          html += '<div style="font-size:10.5px;opacity:.85;">Live Capture Frame</div>';
+          html += '</div>';
+        }
+      }
+      html += '<span>' + escHtml(text) + '</span>';
+      return html;
+    }
+
+    function pushUserMsg(text, hasAttachments) {
+      const box = $('chatBox');
+      const msg = document.createElement('div');
+      msg.className = 'msg user';
+      msg.innerHTML = buildUserMessageHTML(text, hasAttachments);
+      box.appendChild(msg);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function matchKW(text, keywords) {
+      const lower = text.toLowerCase();
+      return keywords.some(kw => lower.includes(kw.toLowerCase()));
+    }
+
+    function buildLocalReply(text, metrics, isChinese, batchSummary, videoSummary, source) {
+      const lower = text.toLowerCase();
+      const cn = isChinese;
+      let reply;
+
+      // Plant type guidance note (appended to all detection results)
+      const plantLabel = state.plantType === 'monocotyledons' ? 'Monocot' : 'Dicot';
+      const plantNote = cn
+        ? '\n\n---\n当前使用 **' + plantLabel + '** 模型进行检测。\n双子叶(Dicot)：气孔散乱分布，保卫细胞肾形 — 适用于拟南芥、大豆、番茄等阔叶植物。\n单子叶(Monocot)：气孔平行排列，保卫细胞哑铃形 — 适用于水稻、小麦、玉米等禾本科植物。\n**如果您的样本类型与当前选择不匹配，请点击底部芯片切换后重新检测。**'
+        : '\n\n---\nDetection ran with the **' + plantLabel + '** model.\nDicot: scattered stomata, kidney-shaped guard cells — for broadleaf plants (Arabidopsis, soybean, tomato).\nMonocot: parallel-row stomata, dumbbell-shaped guard cells — for grasses & cereals (rice, wheat, maize).\n**If your sample doesn\'t match, click the Dicot/Monocot chip below and re-run detection.**';
+
+      // === BATCH / VIDEO MULTI-ITEM CONTEXT ===
+      if (batchSummary) {
+        if (matchKW(lower, ['summary', 'report', 'summarize', '总结', '报告', '摘要',
+                            'analyze', '分析', '检测'])) {
+          reply = cn
+            ? '批量检测完成\n' + batchSummary + '\n\n植物类型: ' + plantLabel +
+              '  |  采样方式: ' + (state.sampleType || 'nondestructive') + '\n比例尺: ' +
+              ($('scale').value || '100') + ' μm\n\n打开 Workspace 面板浏览各图像并导出 CSV。'
+            : 'Batch Detection Complete\n' + batchSummary + '\n\nPlant type: ' + plantLabel +
+              '  |  Sample: ' + (state.sampleType || 'nondestructive') + '\nScale: ' +
+              ($('scale').value || '100') +
+              ' μm\n\nOpen the Workspace panel to navigate individual images and export CSV.';
+          return reply + plantNote;
+        }
+        reply = cn
+          ? '批量检测已对所有图像完成。\n' + batchSummary + '\n\n您可以让我详细分析单张图像或生成研究报告。打开 Workspace 浏览叠加结果。'
+          : 'Batch detection completed across all images.\n' + batchSummary +
+            '\n\nYou can ask me for detailed analysis of individual images or a research report. Open Workspace to browse overlays.';
+        return reply + plantNote;
+      }
+
+      if (videoSummary) {
+        if (matchKW(lower, ['summary', 'report', 'summarize', '总结', '报告', '摘要',
+                            'analyze', '分析', '检测'])) {
+          reply = cn
+            ? '视频帧分析完成\n' + videoSummary + '\n\n植物类型: ' + plantLabel +
+              '  |  采样方式: ' + (state.sampleType || 'nondestructive') + '\n比例尺: ' +
+              ($('scale').value || '100') + ' μm\n\n打开 Workspace 面板检查逐帧叠加结果并导出 CSV。'
+            : 'Video Frame Analysis Complete\n' + videoSummary + '\n\nPlant type: ' + plantLabel +
+              '  |  Sample: ' + (state.sampleType || 'nondestructive') + '\nScale: ' +
+              ($('scale').value || '100') +
+              ' μm\n\nOpen the Workspace panel to inspect frame-by-frame overlays and export CSV.';
+          return reply + plantNote;
+        }
+        reply = cn
+          ? '视频帧分析已完成。\n' + videoSummary + '\n\n您可以让我详细分析或生成研究报告。打开 Workspace 浏览帧叠加结果。'
+          : 'Video frame analysis complete.\n' + videoSummary +
+            '\n\nYou can ask me for detailed analysis or a research report. Open Workspace to browse frame overlays.';
+        return reply + plantNote;
+      }
+
+      // === DETECTION RESULTS CONTEXT (single image) ===
+      if (metrics) {
+        const d = metrics.stoma_density_mm2 || '?';
+        const sn = metrics.stoma_count || '?';
+        const an = metrics.aperture_count || '?';
+        const cond = metrics.conductance || '?';
+        const sw = metrics.stoma_avg_width_um || '?';
+        const aw = metrics.aperture_avg_width_um || '?';
+
+        if (matchKW(lower, ['summary', 'report', 'summarize', '总结', '报告', '摘要'])) {
+          reply = cn
+            ? '研究报告 [' + plantLabel + ' 模型]：气孔密度 ' + d + ' stomata/mm²，检测到 ' + sn + ' 个气孔，' + an +
+              ' 个开度。平均宽度 ' + sw + ' μm，开度 ' + aw + ' μm。导度 ' + cond + ' mol m⁻² s⁻¹。'
+            : 'Research Summary [' + plantLabel + ' model]: ' + sn + ' stomata, ' + an + ' apertures, density ' + d +
+              ' stomata/mm². Avg stoma width ' + sw + ' μm, aperture ' + aw +
+              ' μm. Conductance ' + cond + ' mol m⁻² s⁻¹.';
+        } else if (matchKW(lower, ['quality', 'check', 'reliability', '质量', '可靠性', '检查'])) {
+          reply = cn
+            ? '质量评估 [' + plantLabel + ']：检测引擎 ' + (state.usingMock ? '模拟（未加载权重）' : 'YOLO-OBB 实时模型') +
+              '。比例尺 ' + ($('scale').value || '100') + ' μm。建议对密集或低对比度区域人工复核。'
+            : 'Quality [' + plantLabel + ']: ' + (state.usingMock ? 'MOCK (no weights)' : 'YOLO-OBB live') +
+              '. Scale: ' + ($('scale').value || '100') + ' μm. Manual review recommended for crowded or low-contrast regions.';
+        } else if (matchKW(lower, ['explain', 'what', 'how', '解释', '说明', '怎么', '什么'])) {
+          reply = cn
+            ? '使用 ' + (state.usingMock ? '模拟' : 'YOLO-OBB') + ' [' + plantLabel + ' 模型] 检测到 ' + sn + ' 个气孔和 ' + an +
+              ' 个开度。密度 = 数量 / 图像面积。导度使用 Brown-Escombe 扩散模型计算。'
+            : 'Found ' + sn + ' stomata and ' + an + ' apertures via ' +
+              (state.usingMock ? 'MOCK' : 'YOLO-OBB') + ' [' + plantLabel + ' model]. Density = count / image area. ' +
+              'Conductance via Brown-Escombe diffusion model.';
+        } else {
+          reply = cn
+            ? '[' + plantLabel + '] 当前结果：' + sn + ' 个气孔，' + an + ' 个开度，密度 ' + d +
+              ' stomata/mm²。您可以让我生成摘要、检查质量或解释检测原理。'
+            : '[' + plantLabel + '] Result: ' + sn + ' stomata, ' + an + ' apertures, density ' + d +
+              ' stomata/mm². Ask me for a summary, quality check, or explanation.';
+        }
+        return reply + plantNote;
+      }
+
+      // === GREETINGS & IDENTITY ===
+      if (matchKW(lower, ['hello', 'hi', 'hey', '你好', '您好', '早上好', '晚上好',
+                           '你是谁', 'who are you', '你叫什么', '介绍', '自我介绍', '你的名字'])) {
+        reply = cn
+          ? '您好！我是 StomaD² Agent，植物气孔检测与表型分析智能助手。我可以检测气孔、计算密度和导度等表型指标、处理批量图片和视频、导出 CSV 数据。点击 + 按钮上传样本，或者问我关于气孔生物学的问题！'
+          : 'Hello! I\'m StomaD² Agent, a stomata detection & phenotyping assistant. I can detect stomata, calculate density/conductance/size metrics, process batches & video, and export CSV. Click + to upload, or ask me about stomata biology!';
+        return reply;
+      }
+
+      // === HELP ===
+      if (matchKW(lower, ['help', '帮助', '功能', 'what can you do', '你能做什么'])) {
+        reply = cn
+          ? '我可以：1.检测气孔和开度 2.计算表型指标（密度、导度、尺寸） 3.处理批量/视频/摄像头 4.质量审查 5.导出CSV。也可以聊气孔生物学、检测原理、实验设计！'
+          : 'I can: 1.Detect stomata & apertures 2.Calculate phenotype metrics 3.Process batches/video/camera 4.Quality review 5.Export CSV. Ask me about stomata biology, detection methods, or experimental design too!';
+        return reply;
+      }
+
+      // === STOMATA KNOWLEDGE ===
+      if (matchKW(lower, ['what are stomata', 'what is stomata', 'stomata definition',
+                           '什么是气孔', '气孔是什么', '气孔定义'])) {
+        reply = cn
+          ? '气孔是植物叶片和茎表面的微小孔隙，由一对保卫细胞围绕。它们是气体交换的主要场所——CO₂进入进行光合作用，O₂排出，水蒸气通过蒸腾作用散失。典型叶片每mm²有50-500个气孔。'
+          : 'Stomata are microscopic pores on leaf/stem surfaces, each surrounded by a pair of guard cells. They are the primary sites of gas exchange: CO2 enters for photosynthesis, O2 exits, and water vapor escapes via transpiration. Typical density: 50-500 per mm².';
+        return reply;
+      }
+
+      if (matchKW(lower, ['how does detection work', 'how do you detect', 'yolo', 'obb',
+                           '检测原理', '怎么检测', '检测方法'])) {
+        reply = cn
+          ? 'StomaD² 使用 YOLO-OBB（旋转边界框）深度学习模型检测气孔。与普通 YOLO 不同，OBB 预测旋转框，更好地贴合气孔的椭圆形形态。每个检测框包含中心坐标、宽度、高度、旋转角度和类别（气孔/开度）。'
+          : 'StomaD² uses YOLO-OBB (Oriented Bounding Box) deep learning. Unlike standard YOLO which predicts axis-aligned boxes, OBB predicts rotated boxes that better fit the elliptical shape of stomata. Each box has center, width, height, angle, and class (stoma/aperture).';
+        return reply;
+      }
+
+      if (matchKW(lower, ['dicot', 'monocot', '双子叶', '单子叶', '植物类型'])) {
+        reply = cn
+          ? '双子叶植物气孔散乱分布，保卫细胞肾形（如拟南芥、大豆）。单子叶植物气孔平行排列，保卫细胞哑铃形（如水稻、小麦、玉米）。请在面板中选择正确的植物类型以获得最佳检测精度。'
+          : 'Dicots: stomata scattered randomly, kidney-shaped guard cells (e.g. Arabidopsis, soybean). Monocots: stomata in parallel rows, dumbbell-shaped guard cells (e.g. rice, wheat, maize). Select the correct type in the panel for best accuracy.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['density', 'stomatal density', '气孔密度', '密度'])) {
+        reply = cn
+          ? '气孔密度 = 气孔数量 / 图像面积 (mm²)。拟南芥约100-300个/mm²，水稻约300-700个/mm²，小麦约50-100个/mm²。高CO₂环境通常会降低气孔密度，干旱胁迫通常增加密度但减小单个气孔尺寸。'
+          : 'Stomatal density = count / image area (mm²). Arabidopsis: ~100-300/mm², rice: ~300-700/mm², wheat: ~50-100/mm². Elevated CO2 generally reduces density. Drought stress often increases density but reduces individual stoma size.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['conductance', 'stomatal conductance', '导度', '气孔导度', 'gs'])) {
+        reply = cn
+          ? '气孔导度 (gs) 量化水蒸气通过气孔的速率，单位 mol H₂O m⁻² s⁻¹。StomaD² 使用 Brown-Escombe 扩散模型估算。典型值 0.1-0.8 mol m⁻² s⁻¹。导度是光合作用模型和干旱表型研究的关键参数。'
+          : 'Stomatal conductance (gs) quantifies water vapor loss rate, in mol H₂O m⁻² s⁻¹. StomaD² estimates it via the Brown-Escombe diffusion model. Typical values: 0.1-0.8. It is a critical parameter for photosynthesis models and drought phenotyping.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['guard cell', '保卫细胞', 'aperture', '开度', 'pore'])) {
+        reply = cn
+          ? '保卫细胞是包围气孔的特化表皮细胞，通过改变膨压来调节孔隙大小。蓝光→张开，ABA激素→关闭，高CO₂→关闭。开度大小直接决定气体交换能力，几分钟内就能响应光照变化。'
+          : 'Guard cells are specialized epidermal cells flanking each stoma. They change shape with turgor pressure to regulate pore size. Blue light→open, ABA→close, high CO2→close. Aperture size directly determines gas exchange capacity and responds to light within minutes.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['photosynthesis', '光合作用', 'transpiration', '蒸腾', 'climate', 'co2', '气候变化'])) {
+        reply = cn
+          ? '气孔是光合作用和蒸腾作用的关键枢纽。CO₂通过气孔进入用于光合作用，水蒸气通过气孔散失驱动蒸腾流。植物面临CO₂吸收和水分保存之间的权衡。大气CO₂升高短期内导致气孔部分关闭，长期降低气孔密度。'
+          : 'Stomata are the critical hub for photosynthesis and transpiration. CO2 enters for photosynthesis; water vapor exits driving the transpiration stream. Plants balance the trade-off between CO2 uptake and water conservation. Rising CO2 causes short-term closure and long-term density reduction.';
+        return reply;
+      }
+
+      // === CASUAL CONVERSATION ===
+      if (matchKW(lower, ['thank', 'thx', '谢谢', '感谢', '多谢'])) {
+        reply = cn ? '不客气！随时上传样本，我来帮您分析气孔数据。' : 'You\'re welcome! Happy to help with your stomata research.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['bye', 'goodbye', 'see you', '拜拜', '再见', '回头见'])) {
+        reply = cn ? '再见！您的会话数据已保存，随时回来继续分析。' : 'Goodbye! Your session data is saved. Come back anytime.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['how are you', '你怎么样', '你还好吗', 'how is it going', '你好吗'])) {
+        reply = cn ? '我运行正常，随时准备分析样本！今天有什么研究需要帮助的吗？' : 'Running at full capacity and ready to analyze samples! How can I help with your research today?';
+        return reply;
+      }
+
+      if (matchKW(lower, ['nice', 'cool', 'awesome', 'great', '太棒了', '不错', '很好', '厉害'])) {
+        reply = cn ? '谢谢！随时可以分析更多样本或问我关于气孔的问题。' : 'Glad you think so! Ready to analyze more samples when you are.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['who made you', 'who created you', 'creator', '谁做的', '谁开发的', '开发者'])) {
+        reply = cn
+          ? '我是为植物科学研究人员开发的工具，结合了YOLO-OBB计算机视觉与表型计算，帮助研究人员从显微图像中量化气孔性状。'
+          : 'I was developed as a research tool combining YOLO-OBB computer vision with phenotype calculation to help scientists quantify stomatal traits from microscope images.';
+        return reply;
+      }
+
+      if (matchKW(lower, ['joke', 'funny', '笑话', '搞笑', '幽默'])) {
+        reply = cn
+          ? '为什么保卫细胞去健身房？...为了提高气孔导度！😄 好了，聊回科学——准备好分析样本了吗？'
+          : 'Why did the guard cell go to the gym? ... To work on its stomatal conductance! 😄 Alright, back to science — ready to analyze some samples?';
+        return reply;
+      }
+
+      if (matchKW(lower, ['sorry', 'apologize', '对不起', '抱歉'])) {
+        reply = cn ? '没关系！我们继续分析气孔数据吧。' : 'No worries! Let\'s continue with your analysis.';
+        return reply;
+      }
+
+      // === WORKFLOW / USAGE ===
+      if (matchKW(lower, ['workflow', 'plan', '流程', '步骤', '怎么用', 'how to use', '使用'])) {
+        reply = cn
+          ? '使用流程：1.点击+上传样本 2.选植物类型和采样方式 3.点击Run Detection 4.在Workspace查看结果 5.导出CSV。每一步都可以问我问题！'
+          : 'Workflow: 1.Click + to upload 2.Select plant & sample type 3.Click Run Detection 4.Open Workspace for results 5.Export CSV. Feel free to ask questions at any step!';
+        return reply;
+      }
+
+      // === FALLBACK – encourage engagement ===
+      reply = cn
+        ? '感谢您的消息！我是 StomaD² Agent，专注于植物气孔检测和表型分析。您可以问我关于气孔生物学、检测原理、实验设计的问题；也可以上传显微图像进行检测。点击 + 按钮上传样本，或者试试问我「气孔是什么」「怎么检测气孔」吧！'
+        : 'Thanks for your message! I\'m StomaD² Agent, focused on stomata detection & phenotyping. Ask me about stomata biology, detection methods, or experimental design. Or upload a microscope image — click + to get started. Try asking "what are stomata" or "how does detection work"!';
+      return reply;
+    }
+
+    // ---- Clear composer attachments after send (preserves detection results) ----
+    function clearComposerAttachmentsAfterSend() {
+      const container = $('composerAttachments');
+      if (container) {
+        // Revoke only composer's blob URLs (chat message blob URLs are separate and live in chat DOM)
+        container.querySelectorAll('img[src^="blob:"]').forEach(img => URL.revokeObjectURL(img.src));
+        container.innerHTML = '';
+      }
+      // Clear pending attachment state but KEEP detection results, source, and camera stream
+      state.files = [];
+      state.videoFile = null;
+      state.capturedFrame = null;
+      // Do NOT clear: state.source, state.processedItems, state.detectionRun, state.currentIndex
+      // Do NOT stop: state.cameraStream, state.cameraInterval
+
+      // Update source display to reflect "analyzed" state
+      if (state.source === 'camera' && state.cameraStream) {
+        $('statusSource').textContent = 'Camera (live)';
+        updateComposerAttachments();  // refresh to show camera controls again
+      } else if (state.source) {
+        $('statusSource').textContent = (sourceNames[state.source] || state.source) + ' (analyzed)';
+      }
+      $('qcImageText').textContent = 'Detection complete; ready for follow-up questions';
+    }
+
+    async function sendMessageWithAttachments(rawText) {
+      const hasAttachments = !!(state.source && (
+        (state.files && state.files.length > 0) ||
+        state.videoFile ||
+        state.cameraStream
+      ));
+
+      // Determine effective text
+      let text = rawText ? rawText.trim() : '';
+      if (!text && hasAttachments) {
+        text = 'Analyze the uploaded sample.';
+      }
+      if (!text) return;
+
+      // Display user message with attachment preview (creates chat blob URLs)
+      pushUserMsg(text, hasAttachments);
+
+      // If there are attachments and detection hasn't been run, run it now
+      if (hasAttachments && !state.detectionRun) {
+        if (state.source === 'camera') {
+          if (!state.capturedFrame) {
+            if (state.cameraStream) {
+              pushSystemMsg('Capturing frame for analysis...');
+              const result = await captureAndDetectFrame();
+              if (!result) {
+                pushMsg('Failed to capture camera frame. Please click "Capture Frame" first.', 'ai');
+                return; // failure – do NOT clear composer
+              }
+            } else {
+              pushMsg('Please start the camera and capture a frame first, or click "Capture Frame".', 'ai');
+              return; // failure – do NOT clear composer
+            }
+          } else {
+            pushSystemMsg('Running detection on captured frame...');
+            await captureAndDetectFrame();
+          }
+        } else {
+          pushSystemMsg('Running detection on attached sample...');
+          const results = await runDetectionCore({ updateUI: true });
+          if (!results || results.length === 0) {
+            pushMsg('Detection failed. Please check your sample and try again.', 'ai');
+            return; // failure – do NOT clear composer
+          }
+        }
+      }
+
+      // Build agent context with detection results
+      const isChinese = hasChinese(text);
+      const currentItem = state.processedItems[state.currentIndex];
+      const metrics = currentItem ? currentItem.metrics : null;
+      const { conf, scale, plantType, sampleType } = getDetectionParams();
+
+      const context = {
+        metrics: metrics || {},
+        is_mock: currentItem ? currentItem.is_mock : state.usingMock,
+        conf: conf,
+        scale: scale,
+        source: state.source,
+        plant_type: plantType,
+        sample_type: sampleType,
+        language: isChinese ? 'zh' : 'en',
+        history: [],
+      };
+
+      if (state.source === 'batch' && state.processedItems.length > 0) {
+        context.batch_summary = buildBatchSummary(state.processedItems);
+      }
+      if (state.source === 'video' && state.processedItems.length > 0) {
+        context.video_summary = buildVideoSummary(state.processedItems);
+      }
+
+      // Resolve agent reply (backend or local mock)
+      let reply = null;
+      if (state.backendAvailable) {
+        try {
+          const resp = await apiCall('POST', '/api/agent/chat', {
+            message: text,
+            plant_type: plantType,
+            sample_type: sampleType,
+            session_id: SESSION_ID,
+            context: context,
+          });
+          reply = (resp.reply || 'No response from agent.');
+        } catch (e) {
+          // fall through to local reply
+        }
+      }
+
+      if (!reply) {
+        reply = buildLocalReply(text, metrics, isChinese, context.batch_summary, context.video_summary, context.source);
+      }
+
+      pushMsg(reply);
+
+      // ---- Clear composer attachment preview after successful send ----
+      // Chat message already has its own thumbnails; composer preview is no longer needed.
+      // Detection results (state.processedItems, etc.) are preserved for follow-up questions.
+      if (hasAttachments) {
+        clearComposerAttachmentsAfterSend();
+      }
+    }
+
+    // ---- Send button & keyboard shortcuts ----
+    $('sendBtn').onclick = () => {
+      const input = $('promptInput');
+      const text = input.value;
+      input.value = '';
+      sendMessageWithAttachments(text);
+    };
+    $('promptInput').addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') $('sendBtn').click();
+    });
+
+    // ---- Quick action buttons ----
+    $('quickExplain').onclick = () => sendMessageWithAttachments('Explain the current detection result');
+    $('quickSummary').onclick = () => sendMessageWithAttachments('Generate a research summary of the current sample');
+    $('quickQuality').onclick = () => sendMessageWithAttachments('Check the quality and reliability of this detection');
+
+    // Guide card click handlers
+    document.querySelectorAll('.guide-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const action = card.dataset.action;
+        if (action) {
+          $('promptInput').value = action;
+          $('sendBtn').click();
+        }
+      });
+    });
+
+    // ======================================================================
+    //  Metadata modal (simple prompt-based)
+    // ======================================================================
+    $('btnMetadata').onclick = () => {
+      const species = prompt('Species / Genotype:', state.metadata.species || '');
+      if (species !== null) state.metadata.species = species;
+      const treatment = prompt('Treatment group:', state.metadata.treatment || '');
+      if (treatment !== null) state.metadata.treatment = treatment;
+      const replicate = prompt('Replicate ID:', state.metadata.replicate || '');
+      if (replicate !== null) state.metadata.replicate = replicate;
+      const notes = prompt('Notes (imaging device, magnification, leaf side, etc.):', state.metadata.notes || '');
+      if (notes !== null) state.metadata.notes = notes;
+
+      if (state.metadata.species || state.metadata.treatment) {
+        pushMsg('Sample metadata updated: ' +
+          [state.metadata.species, state.metadata.treatment, state.metadata.replicate]
+            .filter(Boolean).join(', ') || 'cleared');
+        toast('Metadata saved');
+      }
+    };
+
+    // ======================================================================
+    //  Init
+    // ======================================================================
+    (async function init() {
+      const ok = await checkBackend();
+      if (!ok) {
+        pushSystemMsg('Tip: start the backend with "python backend_api.py" for real detection and server-side processing.');
+      }
+      // Load sample metadata from localStorage if available
+      try {
+        const saved = localStorage.getItem('stomata_agent_metadata');
+        if (saved) {
+          state.metadata = { ...state.metadata, ...JSON.parse(saved) };
+        }
+      } catch (e) { /* ignore */ }
+    })();
+
+    // Save metadata on unload
+    window.addEventListener('beforeunload', () => {
+      try {
+        localStorage.setItem('stomata_agent_metadata', JSON.stringify(state.metadata));
+      } catch (e) { /* ignore */ }
+      stopCamera();
+    });
+  </script>
+</body>
+</html>
