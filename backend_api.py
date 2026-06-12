@@ -19,6 +19,7 @@ import csv
 import json
 import sys
 import time
+import gc
 import base64
 import threading
 import uuid
@@ -33,6 +34,13 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
+# Aggressive memory optimization for cloud deployment (512MB constraints)
+os.environ.setdefault('OMP_NUM_THREADS', '1')
+os.environ.setdefault('MKL_NUM_THREADS', '1')
+os.environ.setdefault('OPENBLAS_NUM_THREADS', '1')
+os.environ.setdefault('VECLIB_MAXIMUM_THREADS', '1')
+os.environ.setdefault('NUMEXPR_NUM_THREADS', '1')
+
 import cv2
 import numpy as np
 from flask import Flask, request, jsonify, send_file, send_from_directory
@@ -43,6 +51,8 @@ from flask_cors import CORS
 # ---------------------------------------------------------------------------
 try:
     import torch
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
     HAS_TORCH = True
     DEVICE = 0 if torch.cuda.is_available() else 'cpu'
 except ImportError:
@@ -63,7 +73,7 @@ except ImportError:
 app = Flask(__name__)
 CORS(app)
 
-app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024  # 512 MB
+app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32 MB max upload
 
 BASE_DIR = Path(__file__).parent
 UPLOAD_DIR = BASE_DIR / 'uploads'
@@ -236,6 +246,11 @@ class ModelManager:
                 return model, wpath, False, None
 
             try:
+                # Disable gradient computation globally for inference-only workloads
+                if HAS_TORCH:
+                    torch.set_grad_enabled(False)
+                gc.collect()
+
                 # Monkey-patch missing custom loss classes from older YOLO training
                 if HAS_TORCH:
                     import torch.nn as nn
@@ -255,6 +270,7 @@ class ModelManager:
                 # warm-up forward pass (mirrors app.py line 95)
                 model(np.zeros((48, 48, 3), dtype=np.uint8), device=DEVICE)
                 self._cache[key] = (model, str(weight_path))
+                gc.collect()  # free temporary memory after model load
                 print(f'[model] Loaded: {weight_path.name}  (cache size: {len(self._cache)})')
                 return model, str(weight_path), False, None
             except Exception as exc:
