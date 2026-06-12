@@ -5,8 +5,10 @@ services:
     region: singapore
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn backend_api:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --threads 2
+    startCommand: gunicorn backend_api:app --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 1
     envVars:
+      - key: USE_SUBPROCESS
+        value: "1"
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: PRELOAD_MODELS

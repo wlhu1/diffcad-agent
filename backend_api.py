@@ -403,15 +403,64 @@ def calc_phenotype(boxes: np.ndarray, orig_shape: tuple, scale_um: float) -> dic
 # ---------------------------------------------------------------------------
 # core detection pipeline  (mirrors app.py process_single_image)
 # ---------------------------------------------------------------------------
+def _detect_via_subprocess(image, conf, iou, scale_um, plant_type, sample_type):
+    """Run detection in a subprocess.  PyTorch memory is freed when it exits."""
+    import subprocess
+    import tempfile
+
+    # Save image to temp file
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False, dir=str(BASE_DIR)) as tmp:
+        tmp_path = Path(tmp.name)
+        cv2.imwrite(str(tmp_path), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+
+    worker = BASE_DIR / 'detection_worker.py'
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(worker), str(tmp_path),
+             plant_type, sample_type, str(conf), str(iou), str(scale_um)],
+            capture_output=True, text=True, timeout=300,
+            env={**os.environ, 'PYTHONUNBUFFERED': '1'},
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stderr or f'exit code {proc.returncode}')
+
+        result = json.loads(proc.stdout.strip())
+        if not result.get('success') and result.get('error'):
+            raise RuntimeError(result['error'])
+
+        # Map worker output keys to the expected format
+        return {
+            'boxes': result.get('boxes', []),
+            'metrics': result.get('metrics', {}),
+            'overlay_b64': result.get('overlay_b64', ''),
+            'input_b64': result.get('input_b64', ''),
+            'is_mock': result.get('is_mock', True),
+            'mock_reason': result.get('mock_reason'),
+            'weight_path': result.get('weight_path', ''),
+            'plant_type': result.get('plant_type', plant_type),
+            'sample_type': result.get('sample_type', sample_type),
+        }
+    finally:
+        try:
+            tmp_path.unlink()
+        except Exception:
+            pass
+
+
 def detect_image(image: np.ndarray, conf: float, iou: float,
                  scale_um: float = DEFAULT_SCALE,
                  plant_type: str = 'dicotyledons',
                  sample_type: str = 'nondestructive') -> dict:
     """
     Run stomata detection on a single image.
-    Uses real YOLO-OBB model when weights are available; falls back to mock
-    only when the specific weight file is genuinely missing.
+
+    In subprocess mode (USE_SUBPROCESS=1), spawns a worker to load PyTorch+YOLO,
+    run inference, and exit — freeing all ML memory between requests.
+    This allows YOLO-OBB to run on 512 MB cloud free tiers.
     """
+    if os.environ.get('USE_SUBPROCESS', '').lower() == '1':
+        return _detect_via_subprocess(image, conf, iou, scale_um, plant_type, sample_type)
+
     model, weight_path, is_mock, error_msg = model_manager.get(plant_type, sample_type)
 
     if model is not None:
