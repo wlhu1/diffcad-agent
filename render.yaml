@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: diffcad-agent
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn backend_api:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --threads 2
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PRELOAD_MODELS
+        value: "0"
