@@ -123,9 +123,9 @@
     }
     .brand { display: flex; align-items: center; gap: 10px; }
     .logo { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center;
-      background: linear-gradient(135deg, var(--green), var(--cyan)); color: #0a3022;
-      font-weight: 900; font-size: 18px; }
-    .brand h1 { margin: 0; font-size: 20px; line-height: 1.05; }
+      background: linear-gradient(135deg, var(--green), var(--cyan)); }
+    .logo svg { width: 26px; height: 26px; }
+    .brand h1 { margin: 0; font-size: 20px; line-height: 1.25; padding-bottom: 3px; }
     .brand p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; }
     .top-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px;
@@ -513,7 +513,7 @@
     <!-- ======== TOP BAR ======== -->
     <header class="topbar">
       <div class="brand">
-        <div class="logo">D²</div>
+        <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#0a3022" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="21" width="14" height="2.5" rx="1"/><rect x="14" y="2" width="4" height="20" rx="1.5"/><rect x="13" y="3" width="7" height="6" rx="1.5"/><rect x="3" y="12" width="13" height="3" rx="1"/><circle cx="9.5" cy="13.5" r="3.5"/><rect x="14.5" y="9" width="3" height="5" rx="1"/><circle cx="16" cy="6.5" r="1.5"/><line x1="16" y1="4" x2="16" y2="2"/></svg></div>
         <div>
           <h1>DIffCAD Agent</h1>
           <p>Conversational stomata detection &amp; phenotyping assistant</p>
@@ -532,7 +532,7 @@
       <section class="agent-shell">
         <!-- Hero (compact) -->
         <div class="hero">
-          <div class="avatar">🤖</div>
+          <div class="avatar">🔬</div>
           <div>
             <h2>DIffCAD Agent</h2>
             <p>Conversational stomata detection &amp; phenotyping — upload, ask, analyze.</p>

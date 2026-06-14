@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StomaD² Agent | Agent-first Layout</title>
+  <style>
+    :root {
+      --bg0: #061b15;
+      --bg1: #0d3024;
+      --bg2: #14523a;
+      --panel: rgba(9, 39, 28, .66);
+      --panel2: rgba(255,255,255,.065);
+      --panel3: rgba(255,255,255,.092);
+      --line: rgba(220, 255, 233, .14);
+      --line2: rgba(220, 255, 233, .075);
+      --text: #f4fbf6;
+      --muted: rgba(239, 249, 242, .68);
+      --muted2: rgba(239, 249, 242, .48);
+      --green: #69dfb4;
+      --green2: #a9edce;
+      --cyan: #9edff4;
+      --amber: #f1d17b;
+      --danger: #ff9d8f;
+      --shadow: 0 22px 48px rgba(0,0,0,.25);
+      --shadow2: 0 8px 22px rgba(0,0,0,.15);
+      --radius: 26px;
+      --radius2: 18px;
+      --radius3: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 22% 12%, rgba(158,223,244,.11), transparent 19%),
+        radial-gradient(circle at 76% 18%, rgba(105,223,180,.13), transparent 22%),
+        linear-gradient(135deg, var(--bg0), var(--bg1) 48%, var(--bg2));
+      overflow: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: linear-gradient(to bottom, #000, rgba(0,0,0,.24));
+      z-index: -1;
+    }
+    .scene { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+    .leaf, .stoma, .beam { position: absolute; pointer-events: none; }
+    .leaf { opacity: .26; filter: blur(.12px); }
+    .leaf-broad {
+      width: 300px; height: 500px;
+      border-radius: 58% 42% 60% 40% / 18% 18% 82% 82%;
+      background: linear-gradient(180deg, rgba(205,255,224,.105), rgba(36,88,61,.02));
+      border: 1px solid rgba(224,255,235,.10);
+      box-shadow: inset 0 0 34px rgba(255,255,255,.035);
+    }
+    .leaf-broad::before {
+      content: ""; position: absolute; left: 50%; top: 7%; width: 2px; height: 84%; transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(236,255,244,.22), rgba(236,255,244,.02));
+    }
+    .leaf-broad::after {
+      content: ""; position: absolute; inset: 0;
+      background:
+        linear-gradient(25deg, transparent 44%, rgba(232,255,239,.075) 45%, transparent 46%),
+        linear-gradient(-25deg, transparent 54%, rgba(232,255,239,.075) 55%, transparent 56%);
+      mask: linear-gradient(180deg, transparent 10%, #000 25%, #000 80%, transparent 92%);
+      opacity: .45;
+    }
+    .leaf-slim {
+      width: 112px; height: 560px;
+      border-radius: 50% 50% 48% 52% / 8% 8% 92% 92%;
+      background: linear-gradient(180deg, rgba(205,255,224,.09), rgba(36,88,61,.02));
+      border: 1px solid rgba(224,255,235,.08);
+    }
+    .leaf-slim::before {
+      content: ""; position: absolute; left: 50%; top: 4%; width: 2px; height: 90%; transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(236,255,244,.18), rgba(236,255,244,.02));
+    }
+    .leaf.a { left: -72px; top: 70px; transform: rotate(-16deg); }
+    .leaf.b { left: 100px; bottom: -148px; transform: rotate(11deg) scale(.82); }
+    .leaf.c { right: -60px; top: 88px; transform: rotate(15deg); }
+    .leaf.d { right: 120px; bottom: -156px; transform: rotate(-18deg) scale(.83); }
+    .leaf.e { left: 330px; top: -154px; transform: rotate(-9deg) scale(.68); opacity: .14; }
+    .leaf.f { right: 330px; top: -160px; transform: rotate(8deg) scale(.66); opacity: .14; }
+    .stoma {
+      width: 160px; height: 80px; border-radius: 50% / 44%; opacity: .22;
+      border: 1px solid rgba(210,255,228,.13);
+      background: radial-gradient(circle at 50% 50%, rgba(198,255,224,.05), rgba(255,255,255,.01) 62%, transparent 78%);
+    }
+    .stoma::before, .stoma::after {
+      content: ""; position: absolute; top: 50%; width: 41%; height: 56%; transform: translateY(-50%);
+      border-radius: 50% / 60%; border: 1px solid rgba(198,255,224,.12);
+    }
+    .stoma::before { left: 9%; } .stoma::after { right: 9%; }
+    .stoma .slit { position: absolute; left: 50%; top: 50%; width: 10px; height: 34px; transform: translate(-50%,-50%); border-radius: 999px; background: linear-gradient(180deg, rgba(158,223,244,.25), rgba(255,255,255,.02)); }
+    .stoma.s1 { left: 34px; top: 160px; transform: rotate(-20deg); }
+    .stoma.s2 { right: 40px; top: 178px; transform: rotate(18deg); }
+    .stoma.s3 { left: 108px; bottom: 60px; transform: rotate(12deg) scale(.92); }
+    .stoma.s4 { right: 126px; bottom: 54px; transform: rotate(-18deg) scale(.92); }
+    .beam { inset: 0; width: 24%; opacity: .10; transform: skewX(-12deg); background: linear-gradient(90deg, transparent, rgba(202,255,232,.14), transparent); animation: scan 10s linear infinite; }
+    @keyframes scan { from { left: -32%; } to { left: 112%; } }
+
+    .app { width: min(1580px, calc(100vw - 18px)); height: calc(100vh - 16px); margin: 8px auto; display: grid; grid-template-rows: auto 1fr; gap: 10px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 16px; border-radius: 20px;
+      background: rgba(7, 34, 24, .52); border: 1px solid var(--line2); box-shadow: var(--shadow2); backdrop-filter: blur(16px);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: linear-gradient(135deg, var(--green), var(--cyan)); }
+    .logo svg { width: 26px; height: 26px; }
+    .brand h1 { margin: 0; font-size: 20px; line-height: 1.25; padding-bottom: 3px; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; }
+    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,.065); border: 1px solid var(--line); font-size: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(105,223,180,.10); }
+
+    .main { min-height: 0; display: grid; grid-template-columns: minmax(620px, 1fr) 260px; gap: 10px; }
+    .agent-shell {
+      min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px;
+      padding: 14px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line2); box-shadow: var(--shadow); backdrop-filter: blur(18px);
+    }
+    .hero { display: grid; grid-template-columns: 78px 1fr auto; gap: 14px; align-items: center; padding: 14px; border-radius: 20px; background: rgba(255,255,255,.052); border: 1px solid var(--line2); }
+    .avatar { width: 78px; height: 78px; border-radius: 24px; display: grid; place-items: center; font-size: 36px; background: linear-gradient(135deg, rgba(105,223,180,.95), rgba(158,223,244,.95)); box-shadow: 0 12px 26px rgba(105,223,180,.18); }
+    .hero h2 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+    .hero p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; max-width: 720px; }
+    .workflow-mini { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .tag { padding: 6px 9px; border-radius: 999px; background: rgba(255,255,255,.065); border: 1px solid var(--line); font-size: 10.5px; }
+    .hero-cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .chat-area { min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; }
+    .chat-box { min-height: 0; overflow: auto; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.045); border: 1px solid var(--line2); display: flex; flex-direction: column; gap: 9px; }
+    .msg { max-width: 78%; padding: 11px 13px; border-radius: 15px; font-size: 13px; line-height: 1.55; }
+    .msg.ai { align-self: flex-start; background: rgba(255,255,255,.075); border: 1px solid var(--line); }
+    .msg.user { align-self: flex-end; background: linear-gradient(135deg, rgba(105,223,180,.96), rgba(158,223,244,.96)); color: #083123; font-weight: 600; }
+
+    .composer { display: grid; grid-template-columns: 1fr 56px; gap: 8px; }
+    .composer-card { min-height: 122px; padding: 12px; border-radius: 20px; background: rgba(255,255,255,.075); border: 1px solid var(--line); display: grid; grid-template-rows: 1fr auto; gap: 10px; }
+    textarea { width: 100%; min-height: 60px; resize: none; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; font-size: 13px; line-height: 1.45; }
+    textarea::placeholder { color: rgba(239,249,242,.48); }
+    .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .left-actions, .right-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    button { font: inherit; }
+    .btn, .chip, .send { border: 0; transition: .18s ease; cursor: pointer; }
+    .btn { min-height: 34px; padding: 8px 11px; border-radius: 11px; color: var(--text); background: rgba(255,255,255,.075); border: 1px solid var(--line); }
+    .btn.primary { color: #0a3022; background: linear-gradient(135deg, var(--green), var(--green2)); font-weight: 900; box-shadow: 0 8px 18px rgba(105,223,180,.17); }
+    .btn:hover, .chip:hover, .send:hover { transform: translateY(-2px); }
+    .send { border-radius: 18px; background: linear-gradient(180deg, #bdf2dc, #69dfb4); color: #0a3022; font-size: 22px; font-weight: 900; box-shadow: 0 10px 22px rgba(105,223,180,.17); }
+
+    .upload-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 10px; border-radius: 18px; background: rgba(255,255,255,.043); border: 1px solid var(--line2); }
+    .upload-label { color: var(--muted); font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; padding-top: 8px; }
+    .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { padding: 7px 10px; border-radius: 999px; color: var(--text); background: rgba(255,255,255,.075); border: 1px solid var(--line); font-size: 11.5px; }
+    .chip.active { background: linear-gradient(135deg, rgba(105,223,180,.22), rgba(158,223,244,.14)); border-color: rgba(215,255,230,.22); }
+
+    .plan-card { padding: 10px; border-radius: 18px; background: rgba(255,255,255,.043); border: 1px solid var(--line2); }
+    .plan-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+    .plan-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .step { min-height: 62px; padding: 8px; border-radius: 13px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.05); }
+    .step b { display: block; font-size: 11px; margin-bottom: 5px; }
+    .step span { display: block; color: var(--muted); font-size: 9.5px; line-height: 1.32; }
+    .step.active { background: rgba(105,223,180,.10); border-color: rgba(105,223,180,.25); }
+
+    .side-modules { min-height: 0; display: grid; grid-template-rows: auto auto auto 1fr; gap: 10px; }
+    .module-card { padding: 12px; border-radius: 20px; background: rgba(7, 34, 24, .48); border: 1px solid var(--line2); box-shadow: var(--shadow2); backdrop-filter: blur(16px); }
+    .module-card h3 { margin: 0; font-size: 15px; }
+    .module-card p { margin: 6px 0 10px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .mini-stat { padding: 8px; border-radius: 12px; background: rgba(255,255,255,.055); border: 1px solid var(--line2); }
+    .mini-stat label { display: block; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+    .mini-stat b { display: block; margin-top: 5px; font-size: 16px; }
+    .module-btn { width: 100%; margin-top: 8px; }
+    .agent-plan-summary { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .qc-list { display: grid; gap: 6px; }
+    .qc-item { padding: 8px; border-radius: 12px; background: rgba(255,255,255,.052); border: 1px solid var(--line2); }
+    .qc-item b { display: block; font-size: 11px; }
+    .qc-item span { display: block; margin-top: 3px; color: var(--muted); font-size: 9.5px; }
+    .advanced-block details { border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid var(--line2); overflow: hidden; }
+    .advanced-block summary { list-style: none; cursor: pointer; padding: 9px 10px; color: var(--muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+    .advanced-block summary::-webkit-details-marker { display: none; }
+    .param-grid { display: grid; gap: 8px; padding: 0 10px 10px; }
+    .param-row { display: grid; grid-template-columns: 45px 1fr 38px; gap: 6px; align-items: center; color: var(--muted); font-size: 10px; }
+    input[type="range"] { appearance: none; width: 100%; height: 6px; border-radius: 999px; background: linear-gradient(90deg, var(--green), #c9f4df); outline: none; }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--green); box-shadow: 0 4px 10px rgba(105,223,180,.22); }
+    .scale-input { width: 100%; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: rgba(255,255,255,.08); color: #f5fbff; padding: 0 9px; outline: none; }
+
+    .drawer-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.28); opacity: 0; pointer-events: none; transition: .22s ease; z-index: 30; }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .workspace-drawer {
+      position: fixed; right: 12px; top: 12px; bottom: 12px; width: min(920px, calc(100vw - 24px));
+      background: rgba(7, 34, 24, .88); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); backdrop-filter: blur(22px);
+      transform: translateX(calc(100% + 24px)); transition: .26s ease; z-index: 40; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 10px; padding: 14px;
+    }
+    .workspace-drawer.open { transform: translateX(0); }
+    .drawer-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .drawer-top h2 { margin: 0; font-size: 22px; }
+    .drawer-top p { margin: 4px 0 0; color: var(--muted); font-size: 11.5px; }
+    .workspace-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .stat-card { padding: 10px; border-radius: 14px; background: rgba(255,255,255,.055); border: 1px solid var(--line2); min-height: 70px; }
+    .stat-card label { display: block; color: var(--muted); font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; }
+    .stat-card strong { display: block; margin-top: 7px; font-size: 19px; }
+    .stat-card em { display: block; margin-top: 3px; font-style: normal; color: var(--muted); font-size: 9.5px; }
+    .workspace-body { min-height: 0; overflow: auto; display: grid; gap: 8px; }
+    .display-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .image-box { background: rgba(255,255,255,.052); border: 1px solid var(--line2); border-radius: 18px; overflow: hidden; min-height: 260px; display: flex; flex-direction: column; }
+    .image-title { display: flex; align-items: center; justify-content: space-between; padding: 9px 11px; border-bottom: 1px solid var(--line2); font-size: 11.5px; font-weight: 760; background: rgba(255,255,255,.035); }
+    .canvas-wrap { flex: 1; position: relative; display: grid; place-items: center; padding: 8px; min-height: 205px; }
+    canvas, video { width: 100%; max-height: 198px; border-radius: 12px; object-fit: contain; background: rgba(229,236,230,.96); box-shadow: inset 0 0 0 1px rgba(18,48,60,.08); }
+    .empty-state { position: absolute; inset: 8px; display: grid; place-items: center; padding: 18px; text-align: center; border-radius: 12px; color: rgba(235,248,255,.76); background: radial-gradient(circle at 50% 42%, rgba(164,222,250,.08), transparent 36%), repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 10px, transparent 10px 20px); }
+    .empty-state b { display: block; margin-bottom: 4px; font-size: 14px; color: #f5fbff; }
+    .progress-wrap { display: grid; grid-template-columns: 84px 1fr 44px; gap: 8px; align-items: center; padding: 9px 10px; border-radius: 13px; background: rgba(255,255,255,.05); border: 1px solid var(--line2); }
+    .progress-wrap strong { font-size: 11.5px; }
+    .progress-track { height: 7px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.08); }
+    .progress-bar { width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green), var(--cyan)); transition: width .25s ease; }
+    .progress-value { text-align: right; color: #d1f6ff; font-size: 11.5px; font-weight: 800; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .metric { padding: 8px 9px; border-radius: 12px; background: rgba(255,255,255,.055); border: 1px solid var(--line2); min-height: 58px; }
+    .metric label { display: block; min-height: 19px; color: rgba(226,244,255,.72); font-size: 8.8px; line-height: 1.22; text-transform: uppercase; letter-spacing: .03em; }
+    .metric strong { display: block; margin-top: 4px; font-size: 13px; color: #fbfdff; font-variant-numeric: tabular-nums; }
+    .metric em { display: inline-block; margin-top: 2px; font-style: normal; color: var(--muted); font-size: 8.8px; }
+    .drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .nav-strip { display: none; align-items: center; gap: 8px; }
+    .nav-strip.show { display: flex; }
+    .nav-indicator { min-width: 84px; text-align: center; color: var(--muted); font-size: 11.5px; font-weight: 700; }
+
+    .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; padding: 10px 13px; border-radius: 12px; color: #072b3f; background: linear-gradient(135deg, rgba(198,247,219,.98), rgba(105,223,180,.98)); box-shadow: var(--shadow2); transition: opacity .2s ease, transform .2s ease; z-index: 99; font-size: 12px; font-weight: 700; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    input[type="file"] { display: none; }
+
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: calc(100vh - 16px); }
+      .main { grid-template-columns: 1fr; }
+      .side-modules { grid-template-columns: repeat(2, 1fr); grid-template-rows: auto; }
+      .plan-steps { grid-template-columns: repeat(2, 1fr); }
+      .hero { grid-template-columns: 62px 1fr; }
+      .hero-cta { grid-column: 1 / -1; justify-content: flex-start; }
+    }
+    @media (max-width: 760px) {
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .composer, .display-grid, .metrics-grid, .workspace-stats, .side-modules { grid-template-columns: 1fr; }
+      .upload-strip { grid-template-columns: 1fr; }
+      .drawer-footer { align-items: stretch; }
+      .workspace-drawer { right: 6px; left: 6px; width: auto; top: 6px; bottom: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="leaf leaf-broad a"></div><div class="leaf leaf-slim b"></div><div class="leaf leaf-broad c"></div><div class="leaf leaf-slim d"></div><div class="leaf leaf-broad e"></div><div class="leaf leaf-slim f"></div>
+    <div class="stoma s1"><div class="slit"></div></div><div class="stoma s2"><div class="slit"></div></div><div class="stoma s3"><div class="slit"></div></div><div class="stoma s4"><div class="slit"></div></div><div class="beam"></div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#0a3022" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="21" width="14" height="2.5" rx="1"/><rect x="14" y="2" width="4" height="20" rx="1.5"/><rect x="13" y="3" width="7" height="6" rx="1.5"/><rect x="3" y="12" width="13" height="3" rx="1"/><circle cx="9.5" cy="13.5" r="3.5"/><rect x="14.5" y="9" width="3" height="5" rx="1"/><circle cx="16" cy="6.5" r="1.5"/><line x1="16" y1="4" x2="16" y2="2"/></svg></div><div><h1>StomaD² Agent</h1><p>Conversational stomata detection and phenotyping assistant</p></div></div>
+      <div class="top-actions"><span class="pill"><i class="dot"></i><b id="statusModel">YOLO-OBB</b></span><span class="pill">Source: <b id="statusSource">None</b></span><span class="pill">Mode: <b id="statusMode">Agent Plan</b></span></div>
+    </header>
+
+    <main class="main">
+      <section class="agent-shell">
+        <div class="hero">
+          <div class="avatar">🔬</div>
+          <div>
+            <h2>Ask the Agent to Analyze Stomata</h2>
+            <p>Upload images or describe the task. The agent will infer the input type, recommend a workflow, invoke detection, check quality, and generate a research-style interpretation.</p>
+            <div class="workflow-mini"><span class="tag">Input Understanding</span><span class="tag">Task Planning</span><span class="tag">Model Invocation</span><span class="tag">Quality Review</span><span class="tag">Research Report</span></div>
+          </div>
+          <div class="hero-cta"><button id="openFilesBtn" class="btn primary">Upload Samples</button><button id="openWorkspaceBtn" class="btn">Open Workspace</button></div>
+        </div>
+
+        <div class="chat-area">
+          <div id="chatBox" class="chat-box">
+            <div class="msg ai">Hello. Upload a stomata image, folder, video, or camera stream. You can simply say what you need, such as “analyze this batch and summarize density differences.”</div>
+          </div>
+          <div class="composer">
+            <div class="composer-card">
+              <textarea id="promptInput" placeholder="Describe your task, for example: analyze these stomata images, check quality, and generate a concise research summary..."></textarea>
+              <div class="composer-actions">
+                <div class="left-actions"><button id="runAgentBtn" class="btn primary">Run with Agent Plan</button><button id="autoPlanBtn" class="btn">Auto Recommend</button></div>
+                <div class="right-actions"><button class="btn" id="quickExplain">Explain</button><button class="btn" id="quickSummary">Summary</button><button class="btn" id="quickQuality">Quality</button></div>
+              </div>
+            </div>
+            <button id="sendBtn" class="send">➤</button>
+          </div>
+        </div>
+
+        <div class="upload-strip">
+          <div class="upload-label">Input</div>
+          <div class="chip-row"><button class="chip" data-source="single" id="btnSingle">Image</button><button class="chip" data-source="batch" id="btnBatch">Folder</button><button class="chip" data-source="video" id="btnVideo">Video</button><button class="chip" data-source="camera" id="btnCamera">Camera</button><button class="chip" id="btnMetadata">Sample Metadata</button></div>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-top"><span>Agent Suggested Workflow</span><span id="planBadge">Waiting for input</span></div>
+          <div class="plan-steps">
+            <div class="step active" id="planInput"><b>1. Understand</b><span id="planInputText">No sample yet</span></div>
+            <div class="step" id="planConfig"><b>2. Plan</b><span id="planConfigText">Agent chooses mode</span></div>
+            <div class="step" id="planModel"><b>3. Invoke</b><span id="planModelText">Detection model ready</span></div>
+            <div class="step" id="planQC"><b>4. Review</b><span id="planQCText">Quality check pending</span></div>
+            <div class="step" id="planReport"><b>5. Report</b><span id="planReportText">Summary pending</span></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="side-modules">
+        <div class="module-card">
+          <h3>Workspace</h3><p>Collapsed by default. Open it only when you need overlays, metrics, or batch navigation.</p>
+          <div class="mini-stats"><div class="mini-stat"><label>Items</label><b id="sideItemCount">0</b></div><div class="mini-stat"><label>State</label><b id="sideRunState">Ready</b></div></div>
+          <button id="openWorkspaceBtn2" class="btn module-btn">Open Workspace</button>
+        </div>
+        <div class="module-card">
+          <h3>Agent Output</h3><p class="agent-plan-summary" id="agentOutputText">No analysis yet. The assistant will summarize density, aperture traits, quality warnings, and export options after detection.</p>
+        </div>
+        <div class="module-card">
+          <h3>Quality Control</h3>
+          <div class="qc-list"><div class="qc-item"><b>Image Quality</b><span id="qcImageText">Waiting for input</span></div><div class="qc-item"><b>Scale Check</b><span id="qcScaleText">Default scale: 100 μm</span></div><div class="qc-item"><b>Manual Review</b><span id="qcReviewText">Pending</span></div></div>
+        </div>
+        <div class="module-card advanced-block">
+          <h3>Advanced</h3><p>Optional settings for expert users. The agent can run without manual tuning.</p>
+          <details>
+            <summary>Detection Settings</summary>
+            <div class="param-grid"><div class="param-row"><span>IoU</span><input id="iou" type="range" min="0" max="1" step="0.01" value="0.70"><span id="iouOut">0.70</span></div><div class="param-row"><span>Conf</span><input id="conf" type="range" min="0" max="1" step="0.01" value="0.50"><span id="confOut">0.50</span></div><div class="param-row"><span>Step</span><input id="step" type="range" min="0" max="50" step="1" value="5"><span id="stepOut">5</span></div><div class="param-row"><span>Scale</span><input id="scale" class="scale-input" type="number" min="1" value="100"><span><span id="scaleOut">100</span> μm</span></div></div>
+          </details>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+  <section id="workspaceDrawer" class="workspace-drawer">
+    <div class="drawer-top"><div><h2>Research Workspace</h2><p>Expanded view for users who need visual overlays, detailed measurements, and exports.</p></div><div class="workspace-actions"><button id="saveBtn" class="btn">Export CSV</button><button id="resetBtn" class="btn">Reset</button><button id="closeWorkspaceBtn" class="btn">Close</button></div></div>
+    <div class="workspace-stats"><div class="stat-card"><label>Loaded Items</label><strong id="drawerItems">0</strong><em>input assets</em></div><div class="stat-card"><label>Stomata Count</label><strong id="stomaCountSide">—</strong><em>detected regions</em></div><div class="stat-card"><label>Density</label><strong id="sideDensity">—</strong><em>stomata mm⁻²</em></div><div class="stat-card"><label>Conductance</label><strong id="conductanceTop">—</strong><em>mol m⁻² s⁻¹</em></div></div>
+    <div class="workspace-body">
+      <div class="display-grid"><div class="image-box"><div class="image-title"><span>Input</span><span id="inputInfo">No file</span></div><div class="canvas-wrap"><canvas id="inputCanvas" width="720" height="420"></canvas><video id="videoPreview" muted playsinline style="display:none"></video><div id="inputEmpty" class="empty-state"><div><b>No input</b>Select an upload source in the agent.</div></div></div></div><div class="image-box"><div class="image-title"><span>Detection Result</span><span id="outputInfo">OBB overlay</span></div><div class="canvas-wrap"><canvas id="outputCanvas" width="720" height="420"></canvas><div id="outputEmpty" class="empty-state"><div><b>No result</b>Run detection with the agent plan.</div></div></div></div></div>
+      <div class="progress-wrap"><strong id="runState">Ready</strong><div class="progress-track"><div id="progressBar" class="progress-bar"></div></div><div id="progressValue" class="progress-value">0%</div></div>
+      <div class="metrics-grid"><div class="metric"><label>Stomata Density</label><strong id="density">—</strong><em>stomata mm⁻²</em></div><div class="metric"><label>Conductance</label><strong id="conductance">—</strong><em>mol m⁻² s⁻¹</em></div><div class="metric"><label>Stomata Length</label><strong id="stomaLength">—</strong><em>μm</em></div><div class="metric"><label>Stomata Width</label><strong id="stomaWidth">—</strong><em>μm</em></div><div class="metric"><label>Stomata Aspect Ratio</label><strong id="stomaAspect">—</strong></div><div class="metric"><label>Aperture Length</label><strong id="apertureLength">—</strong><em>μm</em></div><div class="metric"><label>Aperture Width</label><strong id="apertureWidth">—</strong><em>μm</em></div><div class="metric"><label>Aperture Aspect Ratio</label><strong id="apertureAspect">—</strong></div></div>
+    </div>
+    <div class="drawer-footer"><div class="nav-strip" id="navStrip"><button id="prevBtn" class="nav-btn">← Previous</button><div id="navIndicator" class="nav-indicator">1 / 1</div><button id="nextBtn" class="nav-btn">Next →</button></div><div class="chip-row"><span class="tag">Area: <b id="imageArea">— mm²</b></span><span class="tag">Stomata: <b id="stomaCount">—</b></span><span class="tag">Aperture: <b id="apertureCount">—</b></span></div></div>
+  </section>
+
+  <input id="singleImageInput" type="file" accept="image/*"><input id="batchImageInput" type="file" accept="image/*" multiple webkitdirectory><input id="videoInput" type="file" accept="video/*">
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const state = { source:null, files:[], videoFile:null, cameraStream:null, running:false, processedItems:[], currentIndex:0, modelMode:'agent' };
+    const canvases = { input:$('inputCanvas'), output:$('outputCanvas') };
+    const ctx = { input:canvases.input.getContext('2d'), output:canvases.output.getContext('2d') };
+    const sourceNames = { single:'Image', batch:'Folder', video:'Video', camera:'Camera' };
+    function toast(text){ const t=$('toast'); t.textContent=text; t.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove('show'),2200); }
+    function pushMsg(text, who='ai'){ const box=$('chatBox'); const msg=document.createElement('div'); msg.className=`msg ${who}`; msg.textContent=text; box.appendChild(msg); box.scrollTop=box.scrollHeight; }
+    function openWorkspace(){ $('drawerBackdrop').classList.add('open'); $('workspaceDrawer').classList.add('open'); }
+    function closeWorkspace(){ $('drawerBackdrop').classList.remove('open'); $('workspaceDrawer').classList.remove('open'); }
+    $('openWorkspaceBtn').onclick=openWorkspace; $('openWorkspaceBtn2').onclick=openWorkspace; $('closeWorkspaceBtn').onclick=closeWorkspace; $('drawerBackdrop').onclick=closeWorkspace;
+
+    function updateSource(source){ state.source=source; document.querySelectorAll('[data-source]').forEach(b=>b.classList.toggle('active', b.dataset.source===source)); $('statusSource').textContent=sourceNames[source]||'None'; $('planInputText').textContent=sourceNames[source] ? `${sourceNames[source]} detected` : 'No sample yet'; $('planBadge').textContent='Input recognized'; $('planInput').classList.add('active'); $('planConfig').classList.add('active'); }
+    document.querySelectorAll('[data-source]').forEach(btn=>btn.onclick=()=>{ const s=btn.dataset.source; updateSource(s); if(s==='single') $('singleImageInput').click(); if(s==='batch') $('batchImageInput').click(); if(s==='video') $('videoInput').click(); if(s==='camera') startCamera(); });
+    $('openFilesBtn').onclick=()=>{ if(!state.source) updateSource('single'); if(state.source==='single') $('singleImageInput').click(); else if(state.source==='batch') $('batchImageInput').click(); else if(state.source==='video') $('videoInput').click(); else startCamera(); };
+    $('autoPlanBtn').onclick=()=>{ if(!state.source) updateSource('single'); $('planConfig').classList.add('active'); $('planModel').classList.add('active'); $('planConfigText').textContent='Agent selected direct detection'; $('planModelText').textContent='YOLO-OBB + phenotype calculator'; $('agentOutputText').textContent='Recommended plan: use direct detection first, keep advanced settings unchanged, then run quality review and generate a research summary.'; pushMsg('I prepared an agent plan: direct detection, phenotype calculation, quality review, and research-style interpretation. You can upload samples or run detection now.'); };
+
+    ['iou','conf','step'].forEach(id=>$(id).addEventListener('input',()=>$(id+'Out').textContent=id==='step'?$(id).value:Number($(id).value).toFixed(2)));
+    $('scale').addEventListener('input',()=>{ $('scaleOut').textContent=$('scale').value; $('qcScaleText').textContent=`Scale: ${$('scale').value} μm`; });
+
+    $('singleImageInput').onchange=async e=>{ const file=e.target.files&&e.target.files[0]; if(!file)return; state.files=[file]; stopCamera(); updateSource('single'); const img=await fileToImage(file); previewImage(img,file.name); setItemCount(1); $('qcImageText').textContent='Image loaded; ready for inference'; $('qcReviewText').textContent='Pending detection'; toast('Image loaded'); };
+    $('batchImageInput').onchange=async e=>{ const files=Array.from(e.target.files||[]).filter(f=>f.type.startsWith('image/')); if(!files.length)return; state.files=files; stopCamera(); updateSource('batch'); const img=await fileToImage(files[0]); previewImage(img,files[0].name); setItemCount(files.length); $('qcImageText').textContent=`${files.length} images loaded`; $('qcReviewText').textContent='Batch review pending'; toast(`Folder loaded: ${files.length} images`); };
+    $('videoInput').onchange=e=>{ const file=e.target.files&&e.target.files[0]; if(!file)return; state.videoFile=file; stopCamera(); updateSource('video'); showVideo(file); setItemCount(1); $('qcImageText').textContent='Video loaded; direct mode preferred'; toast('Video loaded'); };
+    async function startCamera(){ try{ stopCamera(); const stream=await navigator.mediaDevices.getUserMedia({video:true,audio:false}); state.cameraStream=stream; state.files=[]; state.videoFile=null; updateSource('camera'); const video=$('videoPreview'); video.srcObject=stream; video.controls=false; video.style.display='block'; canvases.input.style.display='none'; $('inputEmpty').style.display='none'; video.play(); $('inputInfo').textContent='Camera stream'; setItemCount(1); $('qcImageText').textContent='Live stream active'; toast('Camera started'); }catch{ toast('Camera unavailable'); } }
+    function stopCamera(){ if(state.cameraStream){ state.cameraStream.getTracks().forEach(t=>t.stop()); state.cameraStream=null; } }
+    function setItemCount(n){ $('sideItemCount').textContent=n; $('drawerItems').textContent=n; }
+    function fileToImage(file){ return new Promise((resolve,reject)=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=URL.createObjectURL(file); }); }
+    function clearCanvas(context,canvas){ context.clearRect(0,0,canvas.width,canvas.height); }
+    function drawImageToCanvas(img,canvas,context){ const cw=canvas.width,ch=canvas.height; clearCanvas(context,canvas); const scale=Math.min(cw/img.width,ch/img.height); const w=img.width*scale,h=img.height*scale,x=(cw-w)/2,y=(ch-h)/2; context.drawImage(img,x,y,w,h); }
+    function previewImage(img,label){ const video=$('videoPreview'); video.pause(); video.srcObject=null; video.src=''; video.style.display='none'; canvases.input.style.display='block'; drawImageToCanvas(img,canvases.input,ctx.input); $('inputInfo').textContent=label||'Image'; $('inputEmpty').style.display='none'; clearCanvas(ctx.output,canvases.output); $('outputEmpty').style.display='grid'; }
+    function showVideo(file){ const video=$('videoPreview'); video.srcObject=null; video.src=URL.createObjectURL(file); video.controls=true; video.style.display='block'; canvases.input.style.display='none'; $('inputEmpty').style.display='none'; $('inputInfo').textContent=file.name; clearCanvas(ctx.output,canvases.output); $('outputEmpty').style.display='grid'; }
+    function drawSyntheticLeaf(context,canvas){ clearCanvas(context,canvas); const g=context.createLinearGradient(0,0,canvas.width,canvas.height); g.addColorStop(0,'#203f34'); g.addColorStop(.55,'#355f49'); g.addColorStop(1,'#132b21'); context.fillStyle=g; context.fillRect(0,0,canvas.width,canvas.height); for(let i=0;i<70;i++){ context.beginPath(); context.ellipse(Math.random()*canvas.width,Math.random()*canvas.height,16+Math.random()*30,4+Math.random()*10,Math.random()*Math.PI,0,Math.PI*2); context.strokeStyle=`rgba(193,245,219,${0.05+Math.random()*0.15})`; context.lineWidth=1+Math.random()*1.8; context.stroke(); } }
+    function generateBoxes(n){ const boxes=[]; for(let i=0;i<n;i++){ boxes.push({x:70+Math.random()*560,y:56+Math.random()*300,w:18+Math.random()*24,h:8+Math.random()*13,a:Math.random()*Math.PI,type:i%3===0?'stoma':'aperture'}); } return boxes; }
+    function drawRotatedBox(context,box,color){ context.save(); context.translate(box.x,box.y); context.rotate(box.a); context.strokeStyle=color; context.lineWidth=2; context.shadowColor=color; context.shadowBlur=7; context.strokeRect(-box.w/2,-box.h/2,box.w,box.h); context.restore(); }
+    function drawDetectionOverlay(item){ $('outputEmpty').style.display='none'; if(item.image) drawImageToCanvas(item.image,canvases.output,ctx.output); else drawSyntheticLeaf(ctx.output,canvases.output); item.boxes.forEach(box=>drawRotatedBox(ctx.output,box,box.type==='stoma'?'#9edff4':'#69dfb4')); }
+    function makeMetrics(fileName,seed=Math.random()){ const conf=Number($('conf').value||0.5); const stomaCount=24+Math.round(seed*16); const apertureCount=Math.max(12,stomaCount-Math.round(seed*6)); const imageArea=.084+seed*.036; return {fileName,stomaH:10.5+seed*3.4,stomaW:15+seed*4,stomaAR:.66+seed*.1,apertureH:6+seed*2,apertureW:9.5+seed*2.6,apertureAR:.60+seed*.1,density:stomaCount/imageArea,conductance:.36+seed*.26+(1-conf)*.04,stomaCount,apertureCount,imageArea}; }
+    async function createProcessedItem(file,idx,total){ const seed=(idx+1)/(total+2)+Math.random()*.1; const image=file?await fileToImage(file):null; const fileName=file?file.name:(state.source==='video'?state.videoFile.name:'camera_stream'); return {kind:state.source,fileName,image,fileRef:file||null,boxes:generateBoxes(18+Math.round(seed*18)),metrics:makeMetrics(fileName,seed)}; }
+    function updateMetrics(m){ $('density').textContent=m.density.toFixed(4); $('conductance').textContent=m.conductance.toFixed(4); $('conductanceTop').textContent=m.conductance.toFixed(3); $('stomaLength').textContent=m.stomaW.toFixed(4); $('stomaWidth').textContent=m.stomaH.toFixed(4); $('stomaAspect').textContent=m.stomaAR.toFixed(4); $('apertureLength').textContent=m.apertureW.toFixed(4); $('apertureWidth').textContent=m.apertureH.toFixed(4); $('apertureAspect').textContent=m.apertureAR.toFixed(4); $('stomaCount').textContent=m.stomaCount; $('apertureCount').textContent=m.apertureCount; $('imageArea').textContent=`${m.imageArea.toFixed(4)} mm²`; $('sideDensity').textContent=m.density.toFixed(2); $('stomaCountSide').textContent=m.stomaCount; $('qcReviewText').textContent='Overlay available; manual review recommended for crowded regions'; $('qcImageText').textContent='Usable contrast; result generated'; $('planQC').classList.add('active'); $('planReport').classList.add('active'); }
+    function showItem(index){ if(!state.processedItems.length)return; state.currentIndex=index; const item=state.processedItems[index]; if(item.kind==='video')showVideo(item.fileRef||state.videoFile); else if(item.kind==='camera')$('inputInfo').textContent='Camera stream'; else if(item.image)previewImage(item.image,item.fileName); drawDetectionOverlay(item); updateMetrics(item.metrics); $('inputInfo').textContent=item.fileName; $('navIndicator').textContent=`${index+1} / ${state.processedItems.length}`; $('prevBtn').disabled=index===0; $('nextBtn').disabled=index===state.processedItems.length-1; }
+    function showNavigation(){ const nav=$('navStrip'); if(state.processedItems.length>1&&state.source==='batch')nav.classList.add('show'); else nav.classList.remove('show'); }
+    $('prevBtn').onclick=()=>{ if(state.currentIndex>0)showItem(state.currentIndex-1); }; $('nextBtn').onclick=()=>{ if(state.currentIndex<state.processedItems.length-1)showItem(state.currentIndex+1); };
+    async function runAgent(){ if(state.running)return; if(!state.source){ toast('Please select or upload a source first'); return; } if(state.source==='single'&&!state.files.length){ toast('Please load an image'); return; } if(state.source==='batch'&&!state.files.length){ toast('Please load a folder'); return; } if(state.source==='video'&&!state.videoFile){ toast('Please load a video'); return; } state.running=true; state.processedItems=[]; state.currentIndex=0; $('runState').textContent='Running'; $('sideRunState').textContent='Running'; $('progressBar').style.width='0%'; $('progressValue').textContent='0%'; $('planModel').classList.add('active'); let queue=[]; if(state.source==='single')queue=state.files.slice(0,1); else if(state.source==='batch')queue=state.files.slice(); else queue=[null]; const total=queue.length; setItemCount(total); for(let i=0;i<total;i++){ await new Promise(r=>setTimeout(r,state.source==='batch'?150:380)); const item=await createProcessedItem(queue[i],i,total); state.processedItems.push(item); const pct=Math.round(((i+1)/total)*100); $('progressBar').style.width=pct+'%'; $('progressValue').textContent=pct+'%'; } state.running=false; $('runState').textContent='Completed'; $('sideRunState').textContent='Completed'; showNavigation(); showItem(0); const m=state.processedItems[0].metrics; $('agentOutputText').textContent=`Completed. First item density: ${m.density.toFixed(2)} stomata/mm²; stomata count: ${m.stomaCount}; aperture count: ${m.apertureCount}.`; pushMsg(`Detection completed. I found ${m.stomaCount} stomata and ${m.apertureCount} aperture regions in the current item. Density is ${m.density.toFixed(2)} stomata/mm². Open the workspace to inspect overlays and detailed metrics.`); toast('Agent analysis completed'); }
+    $('runAgentBtn').onclick=runAgent;
+    function exportCSV(){ if(!state.processedItems.length){toast('No results to export');return;} const header=['file name','stomata average height (um)','stomata average width (um)','stomata aspect ratio','aperture average height (um)','aperture average width (um)','aperture aspect ratio','stomata density (stomata * mm-2)','conductance (mol m-2 s-1)','stoma count','aperture count','image area']; const lines=[header.join(',')]; state.processedItems.forEach(item=>{const m=item.metrics; lines.push([m.fileName,m.stomaH,m.stomaW,m.stomaAR,m.apertureH,m.apertureW,m.apertureAR,m.density,m.conductance,m.stomaCount,m.apertureCount,m.imageArea].join(','));}); const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='stomata_detection_results.csv'; a.click(); toast('CSV exported'); }
+    $('saveBtn').onclick=exportCSV;
+    function resetAll(){ stopCamera(); state.source=null; state.files=[]; state.videoFile=null; state.running=false; state.processedItems=[]; state.currentIndex=0; document.querySelectorAll('[data-source]').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.step').forEach((s,i)=>s.classList.toggle('active',i===0)); $('statusSource').textContent='None'; $('runState').textContent='Ready'; $('sideRunState').textContent='Ready'; $('progressBar').style.width='0%'; $('progressValue').textContent='0%'; $('videoPreview').pause(); $('videoPreview').srcObject=null; $('videoPreview').src=''; $('videoPreview').style.display='none'; canvases.input.style.display='block'; clearCanvas(ctx.input,canvases.input); clearCanvas(ctx.output,canvases.output); $('inputInfo').textContent='No file'; $('inputEmpty').style.display='grid'; $('outputEmpty').style.display='grid'; $('navStrip').classList.remove('show'); ['density','conductance','conductanceTop','stomaLength','stomaWidth','stomaAspect','apertureLength','apertureWidth','apertureAspect','stomaCount','apertureCount','stomaCountSide','sideDensity'].forEach(id=>$(id).textContent='—'); $('imageArea').textContent='— mm²'; setItemCount(0); $('planInputText').textContent='No sample yet'; $('planBadge').textContent='Waiting for input'; $('agentOutputText').textContent='No analysis yet. The assistant will summarize density, aperture traits, quality warnings, and export options after detection.'; $('qcImageText').textContent='Waiting for input'; $('qcReviewText').textContent='Pending'; toast('Reset completed'); }
+    $('resetBtn').onclick=resetAll;
+    function answerPrompt(text){ if(!text.trim())return; pushMsg(text,'user'); const item=state.processedItems[state.currentIndex]; const lower=text.toLowerCase(); if(!item){ if(lower.includes('quality')) pushMsg('Upload a sample first. After detection, I can check image usability, scale consistency, overlay reliability, and whether manual review is needed.'); else pushMsg('I can help. Upload an image or folder first, then I will recommend a workflow and run stomata detection.'); return; } const m=item.metrics; if(lower.includes('summary')||lower.includes('report')) pushMsg(`Research summary: the sample shows a stomata density of ${m.density.toFixed(2)} stomata/mm². Mean stomata length and width are ${m.stomaW.toFixed(2)} μm and ${m.stomaH.toFixed(2)} μm. Aperture length and width are ${m.apertureW.toFixed(2)} μm and ${m.apertureH.toFixed(2)} μm.`); else if(lower.includes('quality')) pushMsg(`Quality review: overlay is available, scale is ${$('scale').value} μm, and confidence threshold is ${Number($('conf').value).toFixed(2)}. Manual review is recommended for crowded or low-contrast regions.`); else if(lower.includes('compare')) pushMsg(`Density reflects stomata abundance per unit area, while aperture size reflects opening status. Current density is ${m.density.toFixed(2)}, aperture length is ${m.apertureW.toFixed(2)} μm, and aperture width is ${m.apertureH.toFixed(2)} μm.`); else pushMsg(`Current result: ${m.stomaCount} stomata, ${m.apertureCount} aperture regions, density ${m.density.toFixed(2)} stomata/mm², conductance ${m.conductance.toFixed(3)}.`); }
+    $('sendBtn').onclick=()=>{ const input=$('promptInput'); answerPrompt(input.value); input.value=''; }; $('promptInput').addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='Enter')$('sendBtn').click(); }); $('quickExplain').onclick=()=>answerPrompt('Explain the current result'); $('quickSummary').onclick=()=>answerPrompt('Generate a research summary'); $('quickQuality').onclick=()=>answerPrompt('Check quality and reliability'); $('btnMetadata').onclick=()=>{ pushMsg('Optional metadata can include species, genotype, leaf side, treatment group, magnification, replicate ID, imaging device, and sampling region.'); toast('Metadata guidance added to chat'); };
+  </script>
+</body>
+</html>
