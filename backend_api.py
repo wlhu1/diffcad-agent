@@ -404,7 +404,7 @@ def calc_phenotype(boxes: np.ndarray, orig_shape: tuple, scale_um: float) -> dic
 # core detection pipeline  (mirrors app.py process_single_image)
 # ---------------------------------------------------------------------------
 def _detect_via_subprocess(image, conf, iou, scale_um, plant_type, sample_type):
-    """Run detection in a subprocess.  PyTorch memory is freed when it exits."""
+    """Run detection in a subprocess.  PyTorch/ONNX memory is freed when it exits."""
     import subprocess
     import tempfile
 
@@ -413,7 +413,11 @@ def _detect_via_subprocess(image, conf, iou, scale_um, plant_type, sample_type):
         tmp_path = Path(tmp.name)
         cv2.imwrite(str(tmp_path), cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
 
-    worker = BASE_DIR / 'detection_worker.py'
+    # Prefer ONNX worker if model and onnxruntime are available; fall back to PyTorch
+    worker = BASE_DIR / 'onnx_worker.py'
+    onnx_model = BASE_DIR / 'weights' / 'dicotyledons_nondestructive.onnx'
+    if not (worker.exists() and onnx_model.exists()):
+        worker = BASE_DIR / 'detection_worker.py'
     try:
         proc = subprocess.run(
             [sys.executable, str(worker), str(tmp_path),
