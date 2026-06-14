@@ -14,3 +14,13 @@ cloudflared.exe
 lt_output.txt
 cf_output.txt
 *.bat
+
+# Large restoration weights (not used at runtime)
+weights/face_swinir_v1.ckpt
+weights/v2-1_512-ema-pruned.ckpt
+weights/v2.pth
+weights/scunet_color_real_psnr.pth
+
+# Monocotyledons models excluded from cloud deployment to save memory
+weights/monocotyledons_destructive.pt
+weights/monocotyledons_nondestructive.pt

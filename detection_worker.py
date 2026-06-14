@@ -29,8 +29,8 @@ WEIGHT_DIR = BASE_DIR / 'weights'
 DETECTION_WEIGHTS = {
     ('dicotyledons', 'destructive'):     'dicotyledons_destructive.pt',
     ('dicotyledons', 'nondestructive'):  'dicotyledons_nondestructive.pt',
-    ('monocotyledons', 'destructive'):   'monocotyledons_destructive.pt',
-    ('monocotyledons', 'nondestructive'): 'monocotyledons_nondestructive.pt',
+    # Monocotyledons models excluded from cloud deployment (memory constraint).
+    # They remain available for local use.
 }
 
 
