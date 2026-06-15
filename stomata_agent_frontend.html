@@ -451,6 +451,42 @@
       background: linear-gradient(90deg, var(--green), var(--cyan)); transition: width .25s ease; }
     .progress-value { text-align: right; color: #d1f6ff; font-size: 11.5px; font-weight: 800; }
 
+    /* ---- video timeline scrubber ---- */
+    .video-timeline {
+      display: none; padding: 10px 12px; border-radius: 13px;
+      background: rgba(255,255,255,.05); border: 1px solid var(--line2);
+    }
+    .video-timeline.show { display: block; }
+    .timeline-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+    .timeline-header span { font-size: 10.5px; color: var(--muted); }
+    .timeline-header .tl-time { color: var(--green); font-weight: 700; font-size: 11px; }
+    .timeline-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 8px; border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--cyan));
+      outline: none; cursor: pointer;
+    }
+    .timeline-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #fff; border: 3px solid var(--green);
+      box-shadow: 0 0 12px rgba(92,224,170,.35);
+      cursor: pointer; transition: transform .12s ease;
+    }
+    .timeline-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    .timeline-ticks {
+      display: flex; justify-content: space-between;
+      padding: 2px 11px; margin-top: 2px;
+    }
+    .timeline-ticks span {
+      font-size: 8.2px; color: var(--muted); cursor: pointer;
+      transition: color .12s ease;
+    }
+    .timeline-ticks span:hover { color: var(--green); }
+
     .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
     .metric { padding: 8px 9px; border-radius: 12px; background: rgba(255,255,255,.055);
       border: 1px solid var(--line2); min-height: 58px; }
@@ -696,6 +732,15 @@
         <strong id="runState">Ready</strong>
         <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
         <div id="progressValue" class="progress-value">0%</div>
+      </div>
+
+      <div class="video-timeline" id="videoTimeline">
+        <div class="timeline-header">
+          <span id="timelineLabel">Frame 1 / 1</span>
+          <span class="tl-time" id="timelineTime">0.0s</span>
+        </div>
+        <input type="range" id="timelineSlider" class="timeline-slider" min="0" max="0" value="0" step="1" />
+        <div class="timeline-ticks" id="timelineTicks"></div>
       </div>
 
       <div class="metrics-grid">
@@ -1103,6 +1148,8 @@
       state.videoFile = null;
       state.capturedFrame = null;
       state.detectionRun = false;
+      $('videoTimeline').classList.remove('show');
+      $('navStrip').classList.remove('show');
       document.querySelectorAll('[data-source]').forEach(b => b.classList.remove('active'));
       $('statusSource').textContent = 'None';
       $('qcImageText').textContent = 'Waiting for input';
@@ -1309,18 +1356,61 @@
       $('navIndicator').textContent = (index + 1) + ' / ' + state.processedItems.length;
       $('prevBtn').disabled = index === 0;
       $('nextBtn').disabled = index === state.processedItems.length - 1;
+
+      // video timeline sync
+      if (state.source === 'video') {
+        $('timelineSlider').value = index;
+        $('timelineLabel').textContent = 'Frame ' + (index + 1) + ' / ' + state.processedItems.length;
+        const item = state.processedItems[index];
+        $('timelineTime').textContent = (item.timestamp_sec != null ? item.timestamp_sec.toFixed(1) : '?') + 's';
+      }
     }
 
     function showNavigation() {
       const nav = $('navStrip');
-      if (state.processedItems.length > 1 && state.source === 'batch') nav.classList.add('show');
-      else nav.classList.remove('show');
+      const timeline = $('videoTimeline');
+      if (state.processedItems.length > 1 && (state.source === 'batch' || state.source === 'video')) {
+        nav.classList.add('show');
+      } else {
+        nav.classList.remove('show');
+      }
+      // Video timeline
+      if (state.source === 'video' && state.processedItems.length > 0) {
+        timeline.classList.add('show');
+        $('timelineSlider').max = state.processedItems.length - 1;
+        buildTimelineTicks();
+      } else {
+        timeline.classList.remove('show');
+      }
     }
 
     $('prevBtn').onclick = () => { if (state.currentIndex > 0) showItem(state.currentIndex - 1); };
     $('nextBtn').onclick = () => {
       if (state.currentIndex < state.processedItems.length - 1) showItem(state.currentIndex + 1);
     };
+
+    // Video timeline scrubber
+    $('timelineSlider').addEventListener('input', () => {
+      const idx = parseInt($('timelineSlider').value);
+      if (idx !== state.currentIndex && state.processedItems[idx]) {
+        showItem(idx);
+      }
+    });
+
+    function buildTimelineTicks() {
+      const container = $('timelineTicks');
+      const items = state.processedItems;
+      if (items.length <= 1) { container.innerHTML = ''; return; }
+      const maxTicks = Math.min(items.length, 12);
+      const step = Math.max(1, Math.floor(items.length / maxTicks));
+      let html = '';
+      for (let i = 0; i < items.length; i += step) {
+        const ts = items[i].timestamp_sec;
+        html += '<span onclick="$(\'timelineSlider\').value=' + i + ';showItem(' + i + ')">' +
+          (ts != null ? ts.toFixed(1) + 's' : '#' + i) + '</span>';
+      }
+      container.innerHTML = html;
+    }
 
     // ======================================================================
     //  Client-side mock detection (fallback when backend is unreachable)
