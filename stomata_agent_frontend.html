@@ -179,7 +179,7 @@
     .msg .mock-badge { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px;
       font-size: 9px; background: rgba(241,209,123,.18); color: var(--amber); border: 1px solid rgba(241,209,123,.25); }
 
-    .composer { display: grid; grid-template-columns: 1fr 56px; gap: 8px; }
+    .composer { display: flex; flex-direction: column; gap: 8px; }
     .composer-card { min-height: 114px; padding: 10px; border-radius: 20px;
       background: rgba(255,255,255,.075); border: 1px solid var(--line);
       display: grid; grid-template-rows: auto 1fr auto; gap: 8px; }
@@ -490,7 +490,7 @@
     }
     @media (max-width: 760px) {
       .topbar { flex-direction: column; align-items: flex-start; }
-      .composer, .display-grid, .metrics-grid, .workspace-stats, .side-modules {
+      .display-grid, .metrics-grid, .workspace-stats, .side-modules {
         grid-template-columns: 1fr; }
       .workspace-drawer { right: 6px; left: 6px; width: auto; top: 6px; bottom: 6px; }
     }
@@ -523,6 +523,7 @@
         <a href="/" class="btn btn-ghost btn-sm" style="text-decoration:none;">&larr; Home</a>
         <span class="pill"><i class="dot" id="statusDot"></i><b id="statusModel">Initializing...</b></span>
         <span class="pill" id="weightPill" title="">Weights: <b id="statusWeight">—</b></span>
+        <span class="pill" id="restorePill" title="" style="display:none">Restore: <b id="statusRestore">—</b></span>
         <span class="pill">Source: <b id="statusSource">None</b></span>
       </div>
     </header>
@@ -598,10 +599,10 @@
                   <button class="btn btn-ghost btn-sm" id="quickSummary">Summary</button>
                   <button class="btn btn-ghost btn-sm" id="quickQuality">Quality</button>
                   <button id="runAgentBtn" class="btn btn-primary btn-sm">Run Detection</button>
+                  <button id="sendBtn" class="btn-send">➤</button>
                 </div>
               </div>
             </div>
-            <button id="sendBtn" class="btn-send">➤</button>
           </div>
         </div>
       </section>
@@ -892,6 +893,17 @@
           tipParts.push('Missing: ' + missingWeights.join(', '));
         }
         $('weightPill').title = tipParts.join(' | ');
+
+        // Restoration weights
+        const resto = data.restoration_weights || {};
+        const restoAvailable = (resto.available && resto.available.length > 0) ? resto.available : [];
+        if (restoAvailable.length > 0) {
+          $('restorePill').style.display = '';
+          $('statusRestore').textContent = restoAvailable.length + ' avail';
+          $('restorePill').title = 'Restoration weights available: ' + restoAvailable.join(', ') + '. Requires DiffBIR (desktop only).';
+        } else {
+          $('restorePill').style.display = 'none';
+        }
 
         // System message
         if (usableWeights.length > 0) {

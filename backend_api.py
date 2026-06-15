@@ -630,6 +630,66 @@ def api_status():
     })
 
 
+@app.route('/api/restoration/status', methods=['GET'])
+def api_restoration_status():
+    """Restoration/enhancement weight status (DiffBIR pipeline)."""
+    resto = model_manager.get_restoration_info()
+    return jsonify({
+        'success': True,
+        'restoration_weights_available': resto['available'],
+        'restoration_weights_missing': resto['missing'],
+        'note': 'Restoration requires DiffBIR framework. These weights are used by the desktop application for blind image restoration.',
+        'weights_dir': str(WEIGHT_DIR),
+    })
+
+
+@app.route('/api/restoration/enhance', methods=['POST'])
+def api_restoration_enhance():
+    """Enhance/restore image quality using DiffBIR model (requires DiffBIR + PyTorch)."""
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+
+    file = request.files['image']
+    img_bytes = file.read()
+    nparr = np.frombuffer(img_bytes, np.uint8)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    if image is None:
+        return jsonify({'error': 'Cannot decode image'}), 400
+
+    try:
+        # Try importing DiffBIR (only available in desktop environment)
+        import importlib
+        spec = importlib.util.find_spec('DiffBIR')
+        if spec is None:
+            return jsonify({
+                'success': True,
+                'restored_b64': image_to_base64(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)),
+                'restoration_applied': False,
+                'note': 'DiffBIR not installed — returning original image. Install DiffBIR + basicsr for full restoration.',
+            })
+
+        # Full restoration pipeline (requires GPU and large memory)
+        from DiffBIR import diff_bir
+        ir_model = diff_bir(device='cpu', steps=50)
+        restored = ir_model.restore(image)
+        _, buf = cv2.imencode('.jpg', restored)
+        import base64
+        return jsonify({
+            'success': True,
+            'restored_b64': base64.b64encode(buf).decode(),
+            'restoration_applied': True,
+            'note': 'Image restored with DiffBIR v2.pth model.',
+        })
+    except Exception as e:
+        return jsonify({
+            'success': True,
+            'restored_b64': image_to_base64(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)),
+            'restoration_applied': False,
+            'note': f'Restoration unavailable: {str(e)}',
+        })
+
+
 @app.route('/api/detect/single', methods=['POST'])
 def api_detect_single():
     """
@@ -795,6 +855,8 @@ def api_detect_video():
                 'timestamp_sec': round(frame_idx / fps, 2),
                 'metrics': r['metrics'],
                 'overlay_b64': r['overlay_b64'],
+                'input_b64': r.get('input_b64', ''),
+                'file_name': f'{file.filename}_frame_{frame_idx:04d}',
                 'is_mock': r['is_mock'],
                 'mock_reason': r.get('mock_reason'),
             })
