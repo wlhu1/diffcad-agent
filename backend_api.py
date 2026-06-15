@@ -816,14 +816,14 @@ def api_detect_video():
     """
     Process uploaded video: extract and detect frames at interval.
 
-    Form fields same as single + frame_interval (default 30).
+    Form fields same as single + frame_interval (seconds, default 1).
     """
     if 'video' not in request.files:
         return jsonify({'error': 'No video file provided'}), 400
 
     file = request.files['video']
     params = _parse_detect_params(request.form)
-    frame_interval = int(request.form.get('frame_interval', 30))
+    frame_interval_sec = float(request.form.get('frame_interval', 1.0))
 
     video_path = UPLOAD_DIR / f'{uuid.uuid4().hex}_{file.filename}'
     file.save(str(video_path))
@@ -832,27 +832,33 @@ def api_detect_video():
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
 
+    # Time-based frame extraction: one frame every frame_interval_sec seconds
+    step_frames = max(1, int(round(fps * frame_interval_sec)))
+
     sess = get_session(params['session_id'])
     frame_results = []
     frame_idx = 0
     processed = 0
+    last_ts = -frame_interval_sec  # ensure first frame is captured
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        if frame_idx % frame_interval == 0:
+        timestamp = frame_idx / fps
+
+        if timestamp - last_ts >= frame_interval_sec - 0.001:
             r = detect_image(frame, params['conf'], params['iou'], params['scale'],
                              params['plant_type'], params['sample_type'])
             r['file_name'] = f'{file.filename}_frame_{frame_idx:04d}'
             r['source'] = 'video'
             r['frame_index'] = frame_idx
-            r['timestamp_sec'] = frame_idx / fps
+            r['timestamp_sec'] = round(timestamp, 2)
             sess['results'].append(r)
             frame_results.append({
                 'frame_index': frame_idx,
-                'timestamp_sec': round(frame_idx / fps, 2),
+                'timestamp_sec': round(timestamp, 2),
                 'metrics': r['metrics'],
                 'overlay_b64': r['overlay_b64'],
                 'input_b64': r.get('input_b64', ''),
@@ -861,6 +867,7 @@ def api_detect_video():
                 'mock_reason': r.get('mock_reason'),
             })
             processed += 1
+            last_ts = timestamp
 
         frame_idx += 1
 
