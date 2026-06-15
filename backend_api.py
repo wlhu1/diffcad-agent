@@ -100,7 +100,14 @@ WEIGHT_DIR = BASE_DIR / 'weights'
 # Detection weights - mirrors app.py weight selection logic exactly
 #   plant_type:  dicotyledons | monocotyledons
 #   sample_type: destructive | nondestructive
+# Prefers ONNX for lightweight inference; falls back to PyTorch .pt files.
 DETECTION_WEIGHTS = {
+    ('dicotyledons', 'destructive'):     'dicotyledons_destructive.onnx',
+    ('dicotyledons', 'nondestructive'):  'dicotyledons_nondestructive.onnx',
+    ('monocotyledons', 'destructive'):   'monocotyledons_destructive.onnx',
+    ('monocotyledons', 'nondestructive'): 'monocotyledons_nondestructive.onnx',
+}
+DETECTION_WEIGHTS_PT = {
     ('dicotyledons', 'destructive'):     'dicotyledons_destructive.pt',
     ('dicotyledons', 'nondestructive'):  'dicotyledons_nondestructive.pt',
     ('monocotyledons', 'destructive'):   'monocotyledons_destructive.pt',
@@ -151,15 +158,21 @@ class ModelManager:
             self._availability = info
             return info
 
-        # scan detection weights
+        # scan detection weights (ONNX preferred, .pt as fallback)
         for (plant, sample), fname in DETECTION_WEIGHTS.items():
             path = WEIGHT_DIR / fname
+            pt_fname = DETECTION_WEIGHTS_PT.get((plant, sample), '')
+            pt_path = WEIGHT_DIR / pt_fname if pt_fname else None
             key = f'{plant}_{sample}'
             load_err = self._load_errors.get(key)
+            has_onnx = path.exists()
+            has_pt = pt_path and pt_path.exists()
             info['detection'][key] = {
                 'file_name': fname,
-                'exists': path.exists(),
-                'size_mb': round(path.stat().st_size / (1024 * 1024), 2) if path.exists() else None,
+                'exists': has_onnx or has_pt,
+                'is_onnx': has_onnx,
+                'is_pt': has_pt,
+                'size_mb': round(path.stat().st_size / (1024 * 1024), 2) if has_onnx else (round(pt_path.stat().st_size / (1024 * 1024), 2) if has_pt else None),
                 'plant_type': plant,
                 'sample_type': sample,
                 'cached': key in self._cache,
@@ -222,15 +235,16 @@ class ModelManager:
                 model, wpath = self._cache[key]
                 return model, wpath, False, None
 
-        # resolve weight path
-        weight_info = DETECTION_WEIGHTS.get((plant_type, sample_type))
-        if weight_info is None:
+        # resolve weight path — for YOLO direct loading, use .pt files
+        # (ONNX path is handled by _detect_via_subprocess when USE_SUBPROCESS=1)
+        weight_name = DETECTION_WEIGHTS_PT.get((plant_type, sample_type))
+        if weight_name is None:
             return None, None, True, (
                 f'Unknown plant_type="{plant_type}" or sample_type="{sample_type}". '
-                f'Valid: {list(DETECTION_WEIGHTS.keys())}'
+                f'Valid: {list(DETECTION_WEIGHTS_PT.keys())}'
             )
 
-        weight_path = WEIGHT_DIR / weight_info
+        weight_path = WEIGHT_DIR / weight_name
 
         if not weight_path.exists():
             return None, None, True, (
@@ -415,8 +429,9 @@ def _detect_via_subprocess(image, conf, iou, scale_um, plant_type, sample_type):
 
     # Prefer ONNX worker if model and onnxruntime are available; fall back to PyTorch
     worker = BASE_DIR / 'onnx_worker.py'
-    onnx_model = BASE_DIR / 'weights' / 'dicotyledons_nondestructive.onnx'
-    if not (worker.exists() and onnx_model.exists()):
+    onnx_name = DETECTION_WEIGHTS.get((plant_type, sample_type), '')
+    onnx_model = BASE_DIR / 'weights' / onnx_name if onnx_name else None
+    if not (worker.exists() and onnx_model and onnx_model.exists()):
         worker = BASE_DIR / 'detection_worker.py'
     try:
         proc = subprocess.run(
